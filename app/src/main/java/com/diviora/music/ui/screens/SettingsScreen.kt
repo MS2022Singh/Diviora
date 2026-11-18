@@ -10,6 +10,9 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -102,6 +105,8 @@ fun SettingsScreen(nav: NavHostController) {
             TextButton(onClick = { scope.launch { c.scheduler.rescheduleAll("manual"); UiEvents.message("Alarms re-registered") } }) { Text("Re-register alarms") }
         }
 
+        ContentSources()
+
         Section("Library")
         ListItem(headlineContent = { Text("Rescan device") }, supportingContent = { Text("Find new music and videos in device storage") },
             trailingContent = { TextButton(onClick = { RescanRequest.request() }) { Text("Scan") } })
@@ -133,4 +138,46 @@ private fun Check(title: String, body: String, ok: Boolean, action: String, onFi
         headlineContent = { Text(title) }, supportingContent = { Text(body) },
         trailingContent = { if (!ok) TextButton(onClick = onFix) { Text(action) } },
     )
+}
+
+/** Developer / provider content servers (catalog JSON over HTTPS). */
+@Composable
+private fun ContentSources() {
+    val c = LocalContext.current.container
+    val scope = rememberCoroutineScope()
+    val sources by remember { c.catalogs.observeSources() }.collectAsStateWithLifecycle(emptyList())
+    var url by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    Section("Content sources")
+    Text("Online audio/video published by the app developer or any content server (DIVIORA catalog JSON over HTTPS).",
+        Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    sources.forEach { s ->
+        ListItem(
+            headlineContent = { Text(s.name + if (s.builtIn) "  (built-in)" else "") },
+            supportingContent = {
+                Text("${s.itemCount} items · " + (s.lastSyncMs?.let { "updated ${formatWhen(it)}" } ?: "not synced yet") +
+                    (s.lastError?.let { "\n⚠ $it" } ?: "") + "\n" + s.url.take(80))
+            },
+            trailingContent = {
+                if (!s.builtIn) TextButton(onClick = { scope.launch { runCatching { c.catalogs.removeSource(s.url) }.onFailure { UiEvents.message(it.message ?: "Failed") } } }) { Text("Remove") }
+            },
+        )
+    }
+    OutlinedTextField(url, { url = it }, singleLine = true, label = { Text("Add source URL (https://…/catalog.json)") },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+    Row(Modifier.padding(horizontal = 8.dp)) {
+        TextButton(enabled = url.isNotBlank() && !busy, onClick = {
+            busy = true
+            scope.launch {
+                runCatching { c.catalogs.addSource(url) }
+                    .onSuccess { UiEvents.message("Added ${it.name}: ${it.itemCount} items"); url = "" }
+                    .onFailure { UiEvents.message("Could not add source: ${it.message}") }
+                busy = false
+            }
+        }) { Text("Add source") }
+        TextButton(enabled = !busy, onClick = {
+            busy = true
+            scope.launch { val r = c.catalogs.syncAll(); UiEvents.message("Refreshed ${r.size} source(s)" + if (r.any { it.lastError != null }) ", some failed" else ""); busy = false }
+        }) { Text("Refresh all") }
+    }
 }

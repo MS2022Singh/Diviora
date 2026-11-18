@@ -175,6 +175,7 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
     suspend fun addStream(url: String, title: String?): Long = withContext(Dispatchers.IO) {
         val clean = url.trim()
         require(clean.startsWith("http://") || clean.startsWith("https://")) { "Only http(s) URLs are supported" }
+        PlatformLinks.platformFor(clean)?.let { throw PlatformLinkException(it.name, clean) }
         dao.idForUri(clean) ?: dao.insert(
             MediaEntity(
                 uri = clean, kind = MediaKind.STREAM, source = MediaSource.URL,
@@ -186,6 +187,7 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
 
     /** Parse an .m3u/.m3u8/.pls text and add every http(s) entry as a stream. */
     suspend fun importPlaylistText(text: String): ImportResult {
+        // (platform links inside playlists are skipped by addStream)
         val entries = PlaylistParser.parse(text)
         var added = 0; val ids = ArrayList<Long>()
         for (e in entries) runCatching { ids += addStream(e.url, e.title); added++ }
@@ -203,7 +205,7 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
 
     /** True if the item can currently be opened (file present and permission still granted). */
     fun isReadable(m: MediaEntity): Boolean = when (m.source) {
-        MediaSource.URL -> true
+        MediaSource.URL, MediaSource.CATALOG -> true
         else -> runCatching {
             val uri = Uri.parse(m.uri)
             if (uri.scheme == "file") File(uri.path!!).canRead()

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 enum class MediaKind { AUDIO, VIDEO, STREAM }
 
 /** Where a media item came from. Each source maps to a provider adapter. */
-enum class MediaSource { MEDIA_STORE, IMPORTED_FILE, URL }
+enum class MediaSource { MEDIA_STORE, IMPORTED_FILE, URL, CATALOG }
 
 /** What a routine does if something is already playing when it fires. */
 @Serializable
