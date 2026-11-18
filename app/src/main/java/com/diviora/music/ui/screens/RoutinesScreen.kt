@@ -92,7 +92,7 @@ fun RoutinesScreen(nav: NavHostController) {
             }
             if (routines.isEmpty()) item {
                 EmptyState(Icons.Filled.Alarm, "No routines yet",
-                    "Create a routine: choose tracks, videos, playlists or streams, then add one or more times to play them.")
+                    "Tap New routine, pick songs/videos/playlists, then choose your own date and time (once, daily, weekdays, chosen days or monthly). Tip: any song\u2019s ⋮ menu has Schedule…")
             }
             items(routines, key = { it.id }) { r -> RoutineCard(r, nav, slotCount = slots.count { it.routineId == r.id }) }
         }

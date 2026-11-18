@@ -3,6 +3,17 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.3.0-desktop] - 2026-11-18
+### Added
+- Desktop app (Windows .msi, macOS .dmg, Linux .deb): library (files, folders, links, M3U/PLS), player with video,
+  AutoPlay Routines on the same recurrence engine as Android (user-chosen date/time, multiple times, repeat rules,
+  shuffle/repeat/volume/fade/stop-after/conflict), history, content sources, system tray, notifications, `--selftest`.
+- "Schedule…" on every song/video (Android menu, list "Schedule" button, Now Playing ⏰): opens the editor pre-filled,
+  straight to choosing your own time.
+- `Build installers` GitHub workflow: builds every installer on each push to main and publishes them at Releases → latest.
+- Stable sideload signing key so APK updates install over earlier versions. Shared `:core:catalog` module.
+- docs/INSTALL.md (non-technical install guide), step-by-step content publishing in docs/catalog.md, `content-server/` template.
+
 ## [0.2.0-catalog] - 2026-11-18
 ### Added
 - Developer content server: catalog JSON (v1) over HTTPS, built in via `diviora.catalogUrl`. Synced at start-up and

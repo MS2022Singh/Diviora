@@ -13,6 +13,9 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "diviora-music"
-include(":app")
+// Desktop-only CI runners can skip the Android module: -Pdiviora.skipAndroid=true
+if (providers.gradleProperty("diviora.skipAndroid").orNull != "true") include(":app")
 include(":core:model")
+include(":core:catalog")
 include(":scheduler:recurrence")
+include(":desktop")

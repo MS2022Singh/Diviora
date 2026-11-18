@@ -101,7 +101,7 @@ fun SettingsScreen(nav: NavHostController) {
                         slots = listOf(SlotSpec(t.hour * 60 + t.minute, Repeat.Once, t.toLocalDate().toEpochDay())), rules = RoutineRules(fadeInSeconds = 3)))
                     UiEvents.message("Test routine will play at ${t.toLocalTime().withSecond(0).withNano(0)}")
                 }
-            }) { Text("Schedule a test routine (starts within 2 minutes)") }
+            }) { Text("Quick test: auto-schedule a routine ~2 minutes from now") }
             TextButton(onClick = { scope.launch { c.scheduler.rescheduleAll("manual"); UiEvents.message("Alarms re-registered") } }) { Text("Re-register alarms") }
         }
 

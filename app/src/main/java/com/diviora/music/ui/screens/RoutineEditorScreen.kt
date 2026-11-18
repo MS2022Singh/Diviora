@@ -100,7 +100,7 @@ fun describe(spec: SlotSpec): String {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun RoutineEditorScreen(nav: NavHostController, routineId: Long) {
+fun RoutineEditorScreen(nav: NavHostController, routineId: Long, prefillMediaIds: List<Long> = emptyList()) {
     val c = LocalContext.current.container
     val scope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(routineId == 0L) }
@@ -116,6 +116,12 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: Long) {
     LaunchedEffect(routineId) {
         if (routineId != 0L) c.routines.load(routineId)?.let { d ->
             name = d.name; enabled = d.enabled; mediaIds.addAll(d.mediaIds); slots.addAll(d.slots); rules = d.rules
+        }
+        if (routineId == 0L && prefillMediaIds.isNotEmpty() && mediaIds.isEmpty()) {
+            mediaIds.addAll(prefillMediaIds)
+            val first = c.db.media().get(prefillMediaIds.first())
+            name = first?.title?.let { if (prefillMediaIds.size > 1) "$it + ${prefillMediaIds.size - 1} more" else it } ?: ""
+            editSlot = -1 // go straight to "pick a date and time"
         }
         loaded = true
     }
