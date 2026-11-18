@@ -92,12 +92,13 @@ fun SettingsScreen(nav: NavHostController) {
                 scope.launch {
                     val ids = c.db.media().recentLocalIds()
                     if (ids.isEmpty()) { UiEvents.message("Add some media first"); return@launch }
-                    val t = LocalDateTime.now().plusMinutes(1)
+                    // Next whole minute at least 60 s away, so a slow save can never land in the past.
+                    val t = LocalDateTime.now().plusSeconds(119).withSecond(0).withNano(0)
                     c.routines.save(RoutineDraft(name = "Test routine ${t.toLocalTime().withNano(0).withSecond(0)}", mediaIds = ids.take(3),
                         slots = listOf(SlotSpec(t.hour * 60 + t.minute, Repeat.Once, t.toLocalDate().toEpochDay())), rules = RoutineRules(fadeInSeconds = 3)))
                     UiEvents.message("Test routine will play at ${t.toLocalTime().withSecond(0).withNano(0)}")
                 }
-            }) { Text("Schedule a test routine in 1 minute") }
+            }) { Text("Schedule a test routine (starts within 2 minutes)") }
             TextButton(onClick = { scope.launch { c.scheduler.rescheduleAll("manual"); UiEvents.message("Alarms re-registered") } }) { Text("Re-register alarms") }
         }
 

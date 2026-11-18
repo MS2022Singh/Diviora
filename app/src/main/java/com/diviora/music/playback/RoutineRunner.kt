@@ -28,6 +28,7 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
         val rules = routine.rules()
 
         suspend fun finish(result: ExecutionResult, reason: String?, items: Int = 0): Outcome {
+            Log.i(TAG, "routine=${routine.id} slot=$slotId occurrence=$occurrence result=$result items=$items reason=$reason")
             withContext(Dispatchers.IO) {
                 c.executionLog.finish(execId, routine.id, slotId, occurrence, result, reason, items)
                 if (slot.skipOccurrenceAtMs == occurrenceMs) dao.setSkip(slotId, null)

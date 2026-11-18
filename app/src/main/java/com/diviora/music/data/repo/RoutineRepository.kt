@@ -41,6 +41,10 @@ class RoutineRepository(private val db: AppDatabase, private val scheduler: Alar
     /** Saves the routine, its items and slots, then (re)registers its alarms. Returns the routine id. */
     suspend fun save(d: RoutineDraft): Long {
         require(d.name.isNotBlank()) { "Name is required" }
+        val now = java.time.Instant.now()
+        require(d.slots.any { com.diviora.music.scheduler.recurrence.RecurrenceEngine.nextOccurrence(it, now) != null }) {
+            "All times are in the past; pick a future date or a repeating schedule"
+        }
         val rulesJson = DivioraJson.encodeToString(RoutineRules.serializer(), d.rules)
         val id = db.withTransaction {
             val id = if (d.id == 0L) dao.insert(RoutineEntity(name = d.name.trim(), enabled = d.enabled, rulesJson = rulesJson))

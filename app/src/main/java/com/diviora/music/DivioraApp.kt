@@ -35,9 +35,12 @@ class DivioraApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        RoutineNotifications.ensureChannel(this)
-        WatchdogWorker.enqueue(this)
-        container.appScope.launch { container.scheduler.rescheduleAll("app start") }
+        // Keep the main thread free at startup: the playback service and first frame share it.
+        container.appScope.launch {
+            RoutineNotifications.ensureChannel(this@DivioraApp)
+            WatchdogWorker.enqueue(this@DivioraApp)
+            container.scheduler.rescheduleAll("app start")
+        }
     }
 }
 

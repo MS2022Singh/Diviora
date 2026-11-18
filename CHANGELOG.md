@@ -14,6 +14,11 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
   count, exclusions), rules (shuffle, repeat, volume, fade-in, stop-after with fade-out, conflict policy, alarm stream, late grace),
   exact alarms with inexact fallback, recovery receivers, 12 h watchdog, de-duplicated execution history, conflict warnings,
   run now / skip next / duplicate, test routine, reliability diagnostics.
+- `scripts/smoke-test.sh` end-to-end device test and a debug-only `DebugRoutineReceiver` hook (adb shell only).
+### Fixed
+- Test routine could land in the past on slow devices (now the next whole minute at least 60 s ahead).
+- Saving a routine whose times are all in the past is now refused with a clear message.
+- Startup work (notification channel, watchdog, alarm re-registration) moved off the main thread.
 - Docs: architecture, scheduler behaviour and limits, testing, restore guide, ADRs 0001–0005.
 
 ## [0.0.1-bootstrap] - 2026-11-18
