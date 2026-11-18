@@ -60,19 +60,24 @@ class Library(private val store: Store) {
     val builtInUrl: String get() = System.getProperty("diviora.catalogUrl").orEmpty().ifBlank { DEMO_URL }
 
     suspend fun addSource(url: String): DCatalogSource {
+        if (!developerMode) throw CatalogException("Only the developer can add content sources")
         val u = url.trim()
         if (!u.startsWith("https://", true)) throw CatalogException("Content sources must use https://")
         val catalog = CatalogParser.parse(fetch(u)).first
         return apply(u, catalog, builtIn = false)
     }
 
-    fun removeSource(url: String) = store.update { d ->
+    fun removeSource(url: String) = removeSourceInternal(url)
+
+    private fun removeSourceInternal(url: String) = store.update { d ->
         val gone = d.media.filter { it.catalogUrl == url }.map { it.id }.toSet()
         d.copy(catalogs = d.catalogs.filterNot { it.url == url && !it.builtIn }, media = d.media.filterNot { it.id in gone },
             routines = d.routines.map { r -> r.copy(mediaIds = r.mediaIds.filterNot { it in gone }) })
     }
 
     suspend fun syncAll() {
+        // Outside developer mode only the developer's built-in catalog is kept.
+        if (!developerMode) store.value.catalogs.filter { it.url != builtInUrl }.forEach { removeSourceInternal(it.url) }
         if (store.value.catalogs.none { it.url == builtInUrl }) {
             store.update { it.copy(catalogs = listOf(DCatalogSource(builtInUrl, "Featured", builtIn = true)) + it.catalogs.filterNot { c -> c.builtIn }) }
         }
@@ -121,6 +126,8 @@ class Library(private val store: Store) {
 
     companion object {
         const val DEMO_URL = "asset://catalog/demo-catalog.json"
+        /** Developer mode: set DIVIORA_DEVELOPER=1 (or -Ddiviora.developer=true) when starting the app. Users never see sources. */
+        val developerMode: Boolean get() = System.getenv("DIVIORA_DEVELOPER") == "1" || System.getProperty("diviora.developer") == "true"
         private val AUDIO_EXT = setOf("mp3", "m4a", "aac", "wav", "aif", "aiff")
         private val VIDEO_EXT = setOf("mp4", "m4v", "flv", "fxm")
         private val PLAYLIST_EXT = setOf("m3u", "m3u8", "pls")

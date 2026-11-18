@@ -18,6 +18,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Forward10
+import androidx.compose.material.icons.filled.Replay10
+import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -76,6 +84,11 @@ fun NowPlayingScreen(nav: NavHostController) {
     var sleepMenu by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
     var dragPos by remember { mutableFloatStateOf(0f) }
+    var addToPlaylist by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val current by remember(s.mediaId) { s.mediaId?.toLongOrNull()?.let { c.db.media().observe(it) } ?: kotlinx.coroutines.flow.flowOf(null) }
+        .collectAsStateWithLifecycle(null)
+    if (addToPlaylist) current?.let { m -> AddToPlaylistDialog(listOf(m.id)) { addToPlaylist = false } }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -107,7 +120,9 @@ fun NowPlayingScreen(nav: NavHostController) {
         )
         Row(Modifier.fillMaxWidth()) {
             Text(formatDuration(s.positionMs), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text(if (s.durationMs > 0) formatDuration(s.durationMs) else "LIVE", style = MaterialTheme.typography.labelSmall)
+            if (s.queue.size > 1) Text("${s.currentIndex + 1} of ${s.queue.size}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(when { s.durationMs > 0 -> formatDuration(s.durationMs); current?.kind == MediaKind.STREAM && s.error == null -> "LIVE"; else -> "--:--" },
+                style = MaterialTheme.typography.labelSmall)
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = c.player::toggleShuffle) {
@@ -123,7 +138,13 @@ fun NowPlayingScreen(nav: NavHostController) {
                     tint = if (s.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { c.player.seekBy(-10_000) }, enabled = s.durationMs > 0) { Icon(Icons.Filled.Replay10, "Back 10 seconds") }
+            IconButton(onClick = { current?.let { m -> scope.launch { c.library.setFavorite(m.id, !m.favorite) } } }) {
+                Icon(if (current?.favorite == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite",
+                    tint = if (current?.favorite == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = { addToPlaylist = true }) { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Add to playlist") }
             IconButton(onClick = { s.mediaId?.toLongOrNull()?.let { com.diviora.music.ui.UiEvents.scheduleItems(listOf(it)) } }) {
                 Icon(Icons.Filled.Alarm, "Schedule this")
             }
@@ -146,6 +167,11 @@ fun NowPlayingScreen(nav: NavHostController) {
                     if (s.sleepTimerEndsAtMs != null) DropdownMenuItem(text = { Text("Turn off timer") }, onClick = { c.player.setSleepTimer(null); sleepMenu = false })
                 }
             }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(onClick = { c.player.seekBy(10_000) }, enabled = s.durationMs > 0) { Icon(Icons.Filled.Forward10, "Forward 10 seconds") }
+            IconButton(onClick = { c.player.close(); nav.popBackStack() }) { Icon(Icons.Filled.StopCircle, "Stop and close") }
         }
         s.sleepTimerEndsAtMs?.let { Text("Sleep timer ends at ${formatWhen(it).substringAfter(", ")}", style = MaterialTheme.typography.labelMedium) }
     }

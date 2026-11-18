@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -113,7 +114,7 @@ fun EmptyState(icon: ImageVector, title: String, body: String, action: @Composab
 }
 
 @Composable
-fun MiniPlayer(state: PlayerUiState, onOpen: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit) {
+fun MiniPlayer(state: PlayerUiState, onOpen: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit, onClose: () -> Unit) {
     if (state.mediaId == null) return
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 3.dp,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).clip(RoundedCornerShape(14.dp)).clickable(onClick = onOpen)) {
@@ -127,6 +128,7 @@ fun MiniPlayer(state: PlayerUiState, onOpen: () -> Unit, onToggle: () -> Unit, o
                 }
                 IconButton(onClick = onToggle) { Icon(if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, if (state.isPlaying) "Pause" else "Play") }
                 IconButton(onClick = onNext) { Icon(Icons.Filled.SkipNext, "Next") }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, "Close player") }
             }
             if (state.durationMs > 0) LinearProgressIndicator(
                 progress = { (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f) },

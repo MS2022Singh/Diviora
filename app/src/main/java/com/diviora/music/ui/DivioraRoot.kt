@@ -59,6 +59,7 @@ object UiEvents {
     val routes = _routes.asSharedFlow()
     /** Opens the routine editor pre-filled with these items, so the user picks the date and time. */
     fun scheduleItems(mediaIds: List<Long>) { _routes.tryEmit("routine/0?media=" + mediaIds.joinToString(",")) }
+    fun open(route: String) { _routes.tryEmit(route) }
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -108,7 +109,7 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (showChrome) Column {
-                MiniPlayer(player, onOpen = { nav.navigate("player") }, onToggle = c.player::togglePlay, onNext = c.player::next)
+                MiniPlayer(player, onOpen = { nav.navigate("player") }, onToggle = c.player::togglePlay, onNext = c.player::next, onClose = c.player::close)
                 NavigationBar {
                     tabs.forEach { t ->
                         NavigationBarItem(
@@ -128,6 +129,9 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
             composable("settings") { SettingsScreen(nav) }
             composable("history") { HistoryScreen(nav) }
             composable("player") { NowPlayingScreen(nav) }
+            composable("embed/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
+                com.diviora.music.ui.screens.EmbedPlayerScreen(nav, it.arguments?.getLong("id") ?: 0L)
+            }
             composable(
                 "routine/{id}?media={media}",
                 arguments = listOf(

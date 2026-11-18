@@ -3,22 +3,97 @@
   "name": "DIVIORA Demo",
   "description": "Demo content source. Replace it by setting diviora.catalogUrl to your own server (see docs/catalog.md).",
   "items": [
-    { "id": "sh-1", "type": "audio", "title": "SoundHelix Song 1", "artist": "SoundHelix", "album": "Demo audio",
-      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", "license": "SoundHelix example track" },
-    { "id": "sh-2", "type": "audio", "title": "SoundHelix Song 2", "artist": "SoundHelix", "album": "Demo audio",
-      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", "license": "SoundHelix example track" },
-    { "id": "sh-3", "type": "audio", "title": "SoundHelix Song 3", "artist": "SoundHelix", "album": "Demo audio",
-      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", "license": "SoundHelix example track" },
-    { "id": "sintel-trailer", "type": "video", "title": "Sintel (trailer)", "artist": "Blender Foundation", "album": "Demo video",
-      "url": "https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4", "license": "CC BY 3.0, Blender Foundation" },
-    { "id": "bbb", "type": "video", "title": "Big Buck Bunny", "artist": "Blender Foundation", "album": "Demo video",
-      "url": "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4", "license": "CC BY 3.0, Blender Foundation" },
-    { "id": "hls-test", "type": "video", "title": "Adaptive HLS test stream", "artist": "Mux test streams", "album": "Demo video",
-      "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", "license": "Public test stream" },
-    { "id": "groove-salad", "type": "stream", "title": "Groove Salad (live radio)", "artist": "SomaFM", "album": "Demo radio",
-      "url": "https://ice1.somafm.com/groovesalad-128-mp3", "license": "SomaFM public listener stream" }
+    {
+      "id": "sh-1",
+      "type": "audio",
+      "title": "SoundHelix Song 1",
+      "artist": "SoundHelix",
+      "album": "Demo audio",
+      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "license": "SoundHelix example track"
+    },
+    {
+      "id": "sh-2",
+      "type": "audio",
+      "title": "SoundHelix Song 2",
+      "artist": "SoundHelix",
+      "album": "Demo audio",
+      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      "license": "SoundHelix example track"
+    },
+    {
+      "id": "sh-3",
+      "type": "audio",
+      "title": "SoundHelix Song 3",
+      "artist": "SoundHelix",
+      "album": "Demo audio",
+      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      "license": "SoundHelix example track"
+    },
+    {
+      "id": "test-mp3",
+      "type": "audio",
+      "title": "Test tone (MP3)",
+      "artist": "AndroidX Media test media",
+      "album": "Demo audio",
+      "url": "https://storage.googleapis.com/exoplayer-test-media-0/play.mp3",
+      "license": "Apache-2.0 test media"
+    },
+    {
+      "id": "bbb",
+      "type": "video",
+      "title": "Big Buck Bunny",
+      "artist": "Blender Foundation",
+      "album": "Demo video",
+      "url": "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+      "license": "CC BY 3.0, Blender Foundation"
+    },
+    {
+      "id": "sintel",
+      "type": "video",
+      "title": "Sintel (576p)",
+      "artist": "Blender Foundation",
+      "album": "Demo video",
+      "url": "https://storage.googleapis.com/shaka-demo-assets/sintel-mp4-only/v-0576p-1400k-libx264.mp4",
+      "license": "CC BY 3.0, Blender Foundation"
+    },
+    {
+      "id": "angel-hls",
+      "type": "video",
+      "title": "Angel One (adaptive HLS)",
+      "artist": "Shaka Player demo assets",
+      "album": "Demo video",
+      "url": "https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8",
+      "license": "Demo stream"
+    },
+    {
+      "id": "tears-dash",
+      "type": "video",
+      "title": "Tears of Steel (DASH)",
+      "artist": "Blender Foundation",
+      "album": "Demo video",
+      "url": "https://storage.googleapis.com/wvmedia/clear/h264/tears/tears.mpd",
+      "license": "CC BY 3.0, Blender Foundation"
+    },
+    {
+      "id": "groove-salad",
+      "type": "stream",
+      "title": "Groove Salad (live radio)",
+      "artist": "SomaFM",
+      "album": "Demo radio",
+      "url": "https://ice1.somafm.com/groovesalad-128-mp3",
+      "license": "SomaFM public listener stream"
+    }
   ],
   "playlists": [
-    { "id": "morning", "title": "Morning mix", "itemIds": ["sh-1", "sh-2", "sh-3"] }
+    {
+      "id": "morning",
+      "title": "Morning mix",
+      "itemIds": [
+        "sh-1",
+        "sh-2",
+        "sh-3"
+      ]
+    }
   ]
 }

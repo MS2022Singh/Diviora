@@ -176,6 +176,15 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
     suspend fun addStream(url: String, title: String?): Long = withContext(Dispatchers.IO) {
         val clean = url.trim()
         require(clean.startsWith("http://") || clean.startsWith("https://")) { "Only http(s) URLs are supported" }
+        // YouTube/Spotify/SoundCloud: play inside DIVIORA through the platform's official embedded player.
+        PlatformLinks.embedFor(clean)?.let { e ->
+            return@withContext dao.idForUri(clean) ?: dao.insert(
+                MediaEntity(uri = clean, kind = if (e.isVideo) MediaKind.VIDEO else MediaKind.AUDIO, source = MediaSource.EMBED,
+                    title = title?.takeIf { it.isNotBlank() } ?: "${e.platform} ${e.kind}", artist = e.platform,
+                    artworkUri = if (e.platform == "YouTube") "https://i.ytimg.com/vi/${e.id}/hqdefault.jpg" else null),
+            )
+        }
+        // Other platforms (Gaana, Amazon Music, JioSaavn…) have no embeddable player: hand off to their app.
         PlatformLinks.platformFor(clean)?.let { throw PlatformLinkException(it.name, clean) }
         dao.idForUri(clean) ?: dao.insert(
             MediaEntity(
@@ -206,7 +215,7 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
 
     /** True if the item can currently be opened (file present and permission still granted). */
     fun isReadable(m: MediaEntity): Boolean = when (m.source) {
-        MediaSource.URL, MediaSource.CATALOG -> true
+        MediaSource.URL, MediaSource.CATALOG, MediaSource.EMBED -> true
         else -> runCatching {
             val uri = Uri.parse(m.uri)
             if (uri.scheme == "file") File(uri.path!!).canRead()

@@ -107,7 +107,7 @@ fun LibraryScreen(nav: NavHostController) {
             -1 -> {
                 val l by remember { c.catalogs.observeItems() }.collectAsStateWithLifecycle(emptyList())
                 if (l.isEmpty()) EmptyState(Icons.Filled.Link, "No online content yet",
-                    "Content from the developer's server and sources you add in Settings → Content sources appears here.")
+                    "Online content published by the DIVIORA developer appears here when you are connected to the internet.")
                 else MediaList(l, player.mediaId, header = true)
             }
             0 -> { val l by remember { dao.observeByKind(MediaKind.AUDIO) }.collectAsStateWithLifecycle(emptyList()); MediaList(l, player.mediaId, header = true) }
@@ -306,17 +306,21 @@ fun ImportSheet(onDismiss: () -> Unit) {
                 FilledTonalButton(onClick = { pickFolder.launch(null) }) { Icon(Icons.Filled.Folder, null); Text(" Folder") }
                 FilledTonalButton(onClick = { RescanRequest.request(); onDismiss() }) { Text("Rescan device") }
             }
-            Text("Media link: direct MP3/AAC/MP4/WebM file, HLS .m3u8, DASH .mpd or internet radio. " +
-                "YouTube/Spotify page links open in their own app.", style = MaterialTheme.typography.labelLarge)
+            Text("Paste a link: YouTube, Spotify, SoundCloud, a direct MP3/AAC/MP4/WebM file, HLS .m3u8, DASH .mpd or internet radio.",
+                style = MaterialTheme.typography.labelLarge)
             OutlinedTextField(url, { url = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://…") })
             OutlinedTextField(title, { title = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), label = { Text("Title (optional)") })
             FilledTonalButton(enabled = url.isNotBlank(), onClick = {
                 scope.launch {
                     runCatching { c.library.addStream(url, title) }
-                        .onSuccess { UiEvents.message("Stream added"); onDismiss() }
+                        .onSuccess { id ->
+                            UiEvents.message("Added to library: playing now")
+                            c.db.media().get(id)?.let { c.player.playItems(listOf(it)) }
+                            onDismiss()
+                        }
                         .onFailure { com.diviora.music.ui.handleAddStreamFailure(ctx, it) }
                 }
-            }) { Icon(Icons.Filled.Link, null); Text(" Add stream") }
+            }) { Icon(Icons.Filled.Link, null); Text(" Add & play") }
             Text("Or paste an M3U / PLS playlist", style = MaterialTheme.typography.labelLarge)
             OutlinedTextField(playlistText, { playlistText = it }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 5)
             FilledTonalButton(enabled = playlistText.isNotBlank(), onClick = {

@@ -12,6 +12,7 @@ import com.diviora.music.data.db.CatalogSourceEntity
 import com.diviora.music.data.db.MediaEntity
 import com.diviora.music.data.db.PlaylistEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -26,7 +27,9 @@ import java.net.URL
  *   bundled demo catalog (assets/catalog/demo-catalog.json) is used.
  * - Users may add more sources in Settings → Content sources.
  */
-class CatalogRepository(private val context: Context, private val db: AppDatabase) {
+class CatalogRepository(private val context: Context, private val db: AppDatabase, private val settings: SettingsStore) {
+    /** Only developers may add content sources: debug builds, or release builds unlocked with the developer passphrase. */
+    suspend fun developerMode(): Boolean = BuildConfig.DEBUG || settings.settings.first().developerUnlocked
     private val lock = Mutex()
     fun observeSources() = db.catalogs().observeAll()
     fun observeItems() = db.media().observeCatalogItems()
@@ -40,6 +43,7 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
     /** Validates and adds a user content source. Throws on an invalid URL or catalog. */
     suspend fun addSource(url: String): CatalogSourceEntity {
         val u = url.trim()
+        if (!developerMode()) throw CatalogException("Only the developer can add content sources")
         if (!u.startsWith("https://", true)) throw CatalogException("Content sources must use https://")
         val text = fetch(u)
         val (catalog, _) = CatalogParser.parse(text)
@@ -56,6 +60,10 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
     /** Refreshes every source. Failures are stored per source and never thrown. */
     suspend fun syncAll(): List<CatalogSourceEntity> {
         ensureBuiltIn()
+        // Users never keep extra sources: outside developer mode only the built-in (developer's) catalog stays.
+        if (!developerMode()) db.catalogs().all().filter { !it.builtIn || it.url != builtInUrl }.forEach { src ->
+            db.withTransaction { db.media().deleteCatalog(src.url); db.catalogs().delete(src.url) }
+        }
         return db.catalogs().all().map { src ->
             runCatching { applyCatalog(src.url, CatalogParser.parse(fetch(src.url)).first, src.builtIn) }
                 .getOrElse { e ->

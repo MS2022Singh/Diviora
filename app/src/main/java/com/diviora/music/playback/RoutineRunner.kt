@@ -11,7 +11,9 @@ import com.diviora.music.core.model.MediaKind
 import com.diviora.music.data.repo.rules
 import com.diviora.music.scheduler.RoutineNotifications
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Executes one routine occurrence. Every decision is written to the execution history. */
 class RoutineRunner(private val service: PlaybackService, private val c: AppContainer) {
@@ -49,7 +51,14 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
             return finish(ExecutionResult.SKIPPED, "Something else was playing")
         }
 
-        val all = withContext(Dispatchers.IO) { dao.items(routine.id) }
+        val withEmbeds = withContext(Dispatchers.IO) { dao.items(routine.id) }
+        val embeds = withEmbeds.filter { it.source == com.diviora.music.core.model.MediaSource.EMBED }
+        val all = withEmbeds - embeds.toSet()
+        if (all.isEmpty() && embeds.isNotEmpty()) {
+            // YouTube/Spotify/SoundCloud may only play on screen: ask the user to tap.
+            RoutineNotifications.showOpenRoute(service, "${routine.name}: tap to play", embeds.first().title, "embed/${embeds.first().id}")
+            return finish(ExecutionResult.SKIPPED, "${embeds.first().artist} plays on screen only; a tap-to-play notification was shown")
+        }
         val online = isOnline(service)
         val playable = withContext(Dispatchers.IO) {
             all.filter { m -> m.available && (if (m.uri.startsWith("http")) online else c.library.isReadable(m)) }
@@ -68,6 +77,19 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
             shuffle = rules.shuffle, repeat = rules.repeatQueue, stream = rules.audioStream,
             volumePercent = rules.volumePercent, fadeInSeconds = rules.fadeInSeconds, stopAfterMinutes = rules.stopAfterMinutes,
         )
+        // Confirm audio really started: dead links or unsupported files must not be reported as PLAYED.
+        val started = withTimeoutOrNull(START_TIMEOUT_MS) {
+            while (!service.player.isPlaying) {
+                val err = service.player.playerError
+                if (err != null && !service.player.hasNextMediaItem()) return@withTimeoutOrNull false
+                delay(250)
+            }
+            true
+        } ?: false
+        if (!started) {
+            val why = service.player.playerError?.errorCodeName?.let { "Could not play: $it" } ?: "Playback did not start within 30 s"
+            return finish(ExecutionResult.FAILED, why)
+        }
         playable.firstOrNull { it.kind == MediaKind.VIDEO }?.let { RoutineNotifications.showVideoReady(service, it.title) }
         val skipped = all.size - playable.size
         return finish(ExecutionResult.PLAYED, if (skipped > 0) "$skipped unavailable item(s) skipped" else null, playable.size)
@@ -82,5 +104,6 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
     companion object {
         private const val TAG = "RoutineRunner"
         private const val DEFAULT_LATE_MS = 10 * 60_000L
+        private const val START_TIMEOUT_MS = 30_000L
     }
 }

@@ -31,11 +31,13 @@ When you change the list, users see the change within 6 hours (or immediately vi
    Every item needs a different `id`. The `type` is `audio`, `video` or `stream` (live radio).
 5. **Check it.** Open `https://ms2022singh.github.io/diviora-content/catalog.json` in a browser; you should see your text.
    Optional: `python3 scripts/validate-catalog.py catalog.json`.
-6. **Try it in the app right away.** In DIVIORA open **Settings → Content sources**, paste the catalog URL and press
-   **Add source**. Your items appear in **Library → Online**.
-7. **Make it the default for every user.** In the main Diviora repo, edit `gradle.properties` and set
-   `diviora.catalogUrl=https://ms2022singh.github.io/diviora-content/catalog.json`, then commit it to `main`. GitHub rebuilds all
-   installers. Everyone who installs that version gets your content automatically, with nothing to type.
+6. **Test it on your own device (developer only).** Open **Settings → Developer options** (debug build, or unlocked
+   release build: see [DEVELOPER_GUIDE.md §5](DEVELOPER_GUIDE.md#5-developer-options-content-sources-developer-only)), paste the catalog
+   URL and press **Add source**. Your items appear in **Library → Online**. Normal users never see this option.
+7. **Publish it to every user.** On GitHub open the Diviora repo → **Settings → Secrets and variables → Actions →
+   Variables → New repository variable**, name `DIVIORA_CATALOG_URL`, value
+   `https://ms2022singh.github.io/diviora-content/catalog.json`. Then go to **Actions → Build installers → Run workflow**
+   (or push to `main`). Everyone who installs the new version gets your content automatically, with nothing to type.
 8. **Add more content later.** Upload new files and add entries to `catalog.json`. Users receive them automatically.
 
 ## Larger libraries or your own server
@@ -62,7 +64,7 @@ add it to playlists and schedule it in AutoPlay Routines.
    (or set `diviora.catalogUrl` in `gradle.properties`). If it is empty, the bundled demo catalog is used.
 3. The app syncs the catalog at start-up and every 6 h when online. When you edit the JSON on your server, users get
    the new items **without an app update**. Items you remove disappear from their library.
-4. Users can also add more sources in **Settings → Content sources** (HTTPS only).
+4. Only the developer can add sources (Developer options). Release builds load only the built-in catalog.
 
 ## Format (version 1)
 ```json

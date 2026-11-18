@@ -507,15 +507,27 @@ private fun HistoryView(s: AppServices) {
 private fun SettingsView(s: AppServices) {
     val data by s.store.data.collectAsState()
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf("") }
     Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Keep running in the system tray when the window is closed (needed for routines)", Modifier.weight(1f))
             Switch(data.settings.keepRunningInTray, { on -> s.store.update { it.copy(settings = it.settings.copy(keepRunningInTray = on)) } })
         }
+        if (Library.developerMode) DeveloperSources(s, data, scope)
         HorizontalDivider()
-        Text("Content sources", style = MaterialTheme.typography.titleMedium)
+        Text("Data folder: ${Store.dataDir()}", style = MaterialTheme.typography.bodySmall)
+        Text("DIVIORA Music ${System.getProperty("diviora.version") ?: "dev"} (desktop). Proprietary. Media playback by OpenJFX (GPLv2 + Classpath Exception).",
+            style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** Developer-only: content sources (shown only when DIVIORA_DEVELOPER=1). */
+@Composable
+private fun DeveloperSources(s: AppServices, data: AppData, scope: kotlinx.coroutines.CoroutineScope) {
+    var url by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        HorizontalDivider()
+        Text("Developer options · Content sources", style = MaterialTheme.typography.titleMedium)
         Text("Online audio/video published by the developer or any content server (DIVIORA catalog JSON over HTTPS).",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         data.catalogs.forEach { c ->
@@ -534,10 +546,6 @@ private fun SettingsView(s: AppServices) {
                 .onFailure { s.message = "Could not add source: ${it.message}" } } }) { Text("Add source") }
             OutlinedButton(onClick = { scope.launch { s.library.syncAll(); s.message = "Content sources refreshed" } }) { Text("Refresh") }
         }
-        HorizontalDivider()
-        Text("Data folder: ${Store.dataDir()}", style = MaterialTheme.typography.bodySmall)
-        Text("DIVIORA Music ${System.getProperty("diviora.version") ?: "dev"} (desktop). Proprietary. Media playback by OpenJFX (GPLv2 + Classpath Exception).",
-            style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -560,10 +568,12 @@ private fun PlayerBar(s: AppServices) {
                 Text(fmtDur(ps.positionMs), style = MaterialTheme.typography.labelSmall)
                 Slider(if (ps.durationMs > 0) (ps.positionMs.toFloat() / ps.durationMs).coerceIn(0f, 1f) else 0f,
                     { if (ps.durationMs > 0) s.player.seek((it * ps.durationMs).toLong()) }, Modifier.weight(1f).padding(horizontal = 8.dp), enabled = ps.durationMs > 0)
-                Text(if (ps.durationMs > 0) fmtDur(ps.durationMs) else "LIVE", style = MaterialTheme.typography.labelSmall)
+                Text(when { ps.durationMs > 0 -> fmtDur(ps.durationMs); cur.kind == MediaKind.STREAM && ps.error == null -> "LIVE"; else -> "--:--" },
+                    style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.width(12.dp))
                 Icon(Icons.AutoMirrored.Filled.VolumeUp, null)
                 Slider(ps.volume.toFloat(), { v -> s.player.setVolume(v.toDouble()); s.store.update { it.copy(settings = it.settings.copy(volume = v.toDouble())) } }, Modifier.width(120.dp))
+                IconButton(onClick = s.player::close) { Icon(Icons.Filled.Close, "Close player") }
             }
         }
     }

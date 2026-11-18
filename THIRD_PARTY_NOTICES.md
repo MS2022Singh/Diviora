@@ -10,7 +10,10 @@ licence file are never copied.
 |---|---|---|
 | AndroidX (Core, Activity, Lifecycle, Navigation, Room, DataStore, WorkManager, Compose, Media3) | Apache-2.0 | App framework, playback, persistence |
 | Kotlin stdlib, kotlinx.coroutines, kotlinx.serialization | Apache-2.0 | Language/runtime |
-| Coil 3 | Apache-2.0 | Artwork loading |
+| Coil 3 (+ OkHttp network) | Apache-2.0 | Artwork loading |
+| android-youtube-player (PierfrancescoSoffritti) | MIT | Official YouTube IFrame player embed (Android) |
+| Compose Multiplatform (JetBrains) | Apache-2.0 | Desktop UI |
+| OpenJFX (base, graphics, media, swing) | GPLv2 + Classpath Exception | Desktop audio/video playback (linked as a library; the exception permits proprietary use) |
 | JUnit 4 | EPL-1.0 (test only, not distributed) | Unit tests |
 
 ## Copied / adapted source code

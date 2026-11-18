@@ -3,6 +3,21 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-18
+### Added
+- YouTube, Spotify and SoundCloud links play inside DIVIORA with the official embedded players (on screen only). Routines
+  with them show a tap-to-play notification. Other platform links still open their app.
+- "Add & play": adding a link plays it immediately in the player.
+- Mini player ✕ close. Now Playing: ±10 s, favourite, add to playlist, stop, "n of N" queue position.
+- Developer-only content sources: hidden in release builds (debug builds, or passphrase unlock via `DIVIORA_DEV_PASSPHRASE`;
+  desktop `DIVIORA_DEVELOPER=1`). Built-in catalog URL from the `DIVIORA_CATALOG_URL` repository variable.
+- Docs: README landing page, INSTALL, USER_GUIDE (incl. phone-brand battery fixes), DEVELOPER_GUIDE.
+### Fixed
+- Broken demo links (Big Buck Bunny/Sintel/HLS) replaced with verified ones.
+- A broken item no longer stops the queue (auto-skip). Routines are reported PLAYED only after audio actually starts.
+- Quick test used online demo items; it now uses local files only.
+- "LIVE" was shown for failed items; desktop player bar has ✕ close.
+
 ## [0.3.0-desktop] - 2026-11-18
 ### Added
 - Desktop app (Windows .msi, macOS .dmg, Linux .deb): library (files, folders, links, M3U/PLS), player with video,
