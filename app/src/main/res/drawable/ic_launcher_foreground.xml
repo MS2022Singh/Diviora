@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Original DIVIORA mark: a stylised "D" with a play notch and a clock tick -->
+    <path android:fillColor="#FF8B5CF6"
+        android:pathData="M36,30h16c13.3,0 24,10.7 24,24s-10.7,24 -24,24H36V30z M44,38v32h8c8.8,0 16,-7.2 16,-16s-7.2,-16 -16,-16H44z" />
+    <path android:fillColor="#FFF5F3FF" android:pathData="M50,46l12,8l-12,8z" />
+    <path android:fillColor="#FFF472B6" android:pathData="M72,28a4,4 0,1 1,0.01 0z" />
+</vector>
