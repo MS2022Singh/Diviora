@@ -22,7 +22,7 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
       - name: Build APK
         run: |
-          ./gradlew --no-daemon :app:assembleRelease
+          ./gradlew --no-daemon :app:assembleRelease -Pdiviora.catalogUrl="${{ vars.DIVIORA_CATALOG_URL }}" -Pdiviora.devPassphrase="${{ secrets.DIVIORA_DEV_PASSPHRASE }}"
           mkdir -p out && cp app/build/outputs/apk/release/app-release.apk out/DIVIORA-Music-Android.apk
       - uses: actions/upload-artifact@v4
         with: { name: android, path: out/* }
@@ -42,7 +42,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests and installer
         shell: bash
-        run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true :desktop:test :desktop:${{ matrix.task }}
+        run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true -Pdiviora.catalogUrl="${{ vars.DIVIORA_CATALOG_URL }}" :desktop:test :desktop:${{ matrix.task }}
       - name: Collect
         shell: bash
         run: |

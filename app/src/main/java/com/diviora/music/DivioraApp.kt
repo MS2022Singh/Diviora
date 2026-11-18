@@ -26,7 +26,7 @@ class AppContainer(context: Context) {
     val library = LibraryRepository(context, db)
     val routines = RoutineRepository(db, scheduler)
     val settings = SettingsStore(context)
-    val catalogs = CatalogRepository(context, db)
+    val catalogs = CatalogRepository(context, db, settings)
     val player = PlayerConnection(context, appScope)
 }
 

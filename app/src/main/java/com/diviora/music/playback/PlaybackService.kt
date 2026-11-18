@@ -55,6 +55,7 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         player.addListener(historyListener)
+        player.addListener(errorSkipper)
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java)
             .putExtra(MainActivity.EXTRA_OPEN, "player"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         session = MediaSession.Builder(this, player).setSessionActivity(open).setCallback(SessionCallback()).build()
@@ -126,6 +127,7 @@ class PlaybackService : MediaSessionService() {
         } else {
             player.volume = 1f
         }
+        consecutiveErrors = 0
         player.play()
         stopAfterMinutes?.let { minutes ->
             stopJob = scope.launch {
@@ -150,6 +152,19 @@ class PlaybackService : MediaSessionService() {
         .setUsage(if (stream == AudioStream.ALARM) C.USAGE_ALARM else C.USAGE_MEDIA)
         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
         .build()
+
+    /** Media3 stops on an error. Skip a broken item (dead link, unsupported file) and keep the queue going. */
+    private var consecutiveErrors = 0
+    private val errorSkipper = object : Player.Listener {
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            Log.w(TAG, "playback error on ${player.currentMediaItem?.mediaId}: ${error.errorCodeName}")
+            consecutiveErrors++
+            if (consecutiveErrors < player.mediaItemCount && player.hasNextMediaItem()) {
+                player.seekToNextMediaItem(); player.prepare(); player.play()
+            }
+        }
+        override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) consecutiveErrors = 0 }
+    }
 
     private val historyListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = saveHistory(countPlay = true, item = mediaItem)

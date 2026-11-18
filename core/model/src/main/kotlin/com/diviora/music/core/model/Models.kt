@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 enum class MediaKind { AUDIO, VIDEO, STREAM }
 
 /** Where a media item came from. Each source maps to a provider adapter. */
-enum class MediaSource { MEDIA_STORE, IMPORTED_FILE, URL, CATALOG }
+/** EMBED = a YouTube/Spotify/SoundCloud link played in that service's official embedded player (on screen only). */
+enum class MediaSource { MEDIA_STORE, IMPORTED_FILE, URL, CATALOG, EMBED }
 
 /** What a routine does if something is already playing when it fires. */
 @Serializable
