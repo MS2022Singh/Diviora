@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">DIVIORA Music</string>
+    <string name="channel_routines">Routines</string>
+    <string name="channel_routines_desc">Routine start and status alerts</string>
+</resources>
