@@ -73,6 +73,15 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE id = :id")
     fun observe(id: Long): Flow<MediaEntity?>
 
+    @Query("SELECT * FROM media WHERE available = 1 AND source = 'CATALOG' ORDER BY catalogUrl, dateAddedMs")
+    fun observeCatalogItems(): Flow<List<MediaEntity>>
+
+    @Query("SELECT uri, id FROM media WHERE catalogUrl = :catalogUrl")
+    suspend fun catalogUris(catalogUrl: String): List<UriId>
+
+    @Query("DELETE FROM media WHERE catalogUrl = :catalogUrl")
+    suspend fun deleteCatalog(catalogUrl: String)
+
     @Query("SELECT uri, id FROM media WHERE source = 'MEDIA_STORE'")
     suspend fun mediaStoreUris(): List<UriId>
 
@@ -113,6 +122,8 @@ interface PlaylistDao {
     fun observeAll(): Flow<List<PlaylistEntity>>
 
     @Insert suspend fun insert(p: PlaylistEntity): Long
+
+    @Query("SELECT id FROM playlist WHERE name = :name LIMIT 1") suspend fun findByName(name: String): Long?
 
     @Query("DELETE FROM playlist WHERE id = :id") suspend fun delete(id: Long)
 
@@ -196,4 +207,14 @@ interface RoutineDao {
     @Update suspend fun updateExecution(e: RoutineExecutionEntity)
     @Query("SELECT COUNT(*) FROM routine_execution WHERE slotId = :slotId AND occurrenceAtMs = :at") suspend fun executionCount(slotId: Long, at: Long): Int
     @Query("SELECT * FROM routine_execution ORDER BY firedAtMs DESC LIMIT :limit") fun observeExecutions(limit: Int): Flow<List<RoutineExecutionEntity>>
+}
+
+@Dao
+interface CatalogDao {
+    @Query("SELECT * FROM catalog_source ORDER BY builtIn DESC, name COLLATE NOCASE")
+    fun observeAll(): Flow<List<CatalogSourceEntity>>
+    @Query("SELECT * FROM catalog_source") suspend fun all(): List<CatalogSourceEntity>
+    @Query("SELECT * FROM catalog_source WHERE url = :url") suspend fun get(url: String): CatalogSourceEntity?
+    @Upsert suspend fun upsert(c: CatalogSourceEntity)
+    @Query("DELETE FROM catalog_source WHERE url = :url") suspend fun delete(url: String)
 }

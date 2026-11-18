@@ -24,6 +24,8 @@ data class MediaEntity(
     val dateAddedMs: Long = System.currentTimeMillis(),
     val favorite: Boolean = false,
     val available: Boolean = true,
+    /** For [MediaSource.CATALOG] items: the catalog source URL they came from. */
+    val catalogUrl: String? = null,
 )
 
 @Entity(tableName = "playlist")
@@ -114,4 +116,16 @@ data class RoutineExecutionEntity(
     val result: ExecutionResult,
     val reason: String? = null,
     val itemsQueued: Int = 0,
+)
+
+/** A developer/content-provider catalog (JSON over HTTPS) whose items appear in every user's library. */
+@Entity(tableName = "catalog_source")
+data class CatalogSourceEntity(
+    @PrimaryKey val url: String,
+    val name: String,
+    /** Built-in sources come from the app build (BuildConfig.CATALOG_URL or the bundled demo) and cannot be removed. */
+    val builtIn: Boolean = false,
+    val itemCount: Int = 0,
+    val lastSyncMs: Long? = null,
+    val lastError: String? = null,
 )

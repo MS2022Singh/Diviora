@@ -4,6 +4,7 @@ A native, local-first Android audio and video player with **AutoPlay Routines**:
 tracks, playlists, videos or streams to play automatically, at any number of times, once or on a repeating schedule.
 
 - Specification: [`docs/blueprint.md`](docs/blueprint.md) · Agent build prompt: [`docs/master-prompt.md`](docs/master-prompt.md)
+- Developer content server (your own audio/video for all users): [`docs/catalog.md`](docs/catalog.md)
 - Decisions: [`docs/adr/`](docs/adr) · Progress and restore points: [`docs/STATE.md`](docs/STATE.md)
 
 ## Build from the command line

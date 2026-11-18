@@ -3,6 +3,16 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.2.0-catalog] - 2026-11-18
+### Added
+- Developer content server: catalog JSON (v1) over HTTPS, built in via `diviora.catalogUrl`. Synced at start-up and
+  every 6 h; items and playlists appear in Library → Online and on Home, and can be scheduled in routines.
+- Settings → Content sources: add, refresh and remove extra sources. Bundled demo catalog. `scripts/validate-catalog.py`.
+- YouTube/Spotify/Amazon Music/Gaana/JioSaavn/Apple Music/SoundCloud… links are detected and handed off to their own
+  app instead of failing as broken streams.
+- Remote artwork loading (Coil network). Cleartext http allowed for user-added radio streams.
+- Database v2 with migration from v1.
+
 ## [0.1.0-mvp] - 2026-11-18
 ### Added
 - Gradle 9.9 / AGP 9.5 / Kotlin 2.4 multi-module build (`:app`, `:core:model`, `:scheduler:recurrence`), compileSdk 37.2, targetSdk 36, minSdk 26.

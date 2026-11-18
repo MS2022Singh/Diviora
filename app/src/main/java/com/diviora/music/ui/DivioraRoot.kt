@@ -146,3 +146,17 @@ object RescanRequest {
 }
 
 fun NavHostController.openRoutine(id: Long = 0) = navigate("routine/$id")
+
+/** Hands a protected-platform link (YouTube, Spotify, …) to that platform's own app or the browser. */
+fun openInPlatformApp(context: android.content.Context, url: String) {
+    val i = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+        .addCategory(android.content.Intent.CATEGORY_BROWSABLE).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(i) }.onFailure { UiEvents.message("No app can open this link") }
+}
+
+/** Shows the right message for a failed "add stream", handing platform links off to their app. */
+fun handleAddStreamFailure(context: android.content.Context, e: Throwable) {
+    if (e is com.diviora.music.data.repo.PlatformLinkException) {
+        UiEvents.message(e.message ?: "Opening in ${e.platform}"); openInPlatformApp(context, e.url)
+    } else UiEvents.message(e.message ?: "Invalid URL")
+}

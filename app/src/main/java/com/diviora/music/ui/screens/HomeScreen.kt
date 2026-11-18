@@ -58,6 +58,7 @@ fun HomeScreen(nav: NavHostController) {
     val count by remember { c.db.media().observeCount() }.collectAsStateWithLifecycle(0)
     val next by remember { c.routines.observeNextAlarm() }.collectAsStateWithLifecycle(null)
     val routines by remember { c.routines.observeRoutines() }.collectAsStateWithLifecycle(emptyList())
+    val online by remember { c.catalogs.observeItems() }.collectAsStateWithLifecycle(emptyList())
     var showImport by rememberSaveable { mutableStateOf(false) }
     if (showImport) ImportSheet(onDismiss = { showImport = false })
 
@@ -100,6 +101,10 @@ fun HomeScreen(nav: NavHostController) {
         if (count == 0) item {
             EmptyState(Icons.Filled.LibraryMusic, "Your library is empty",
                 "Allow media access in Settings, or import files, a folder or a stream URL.")
+        }
+        online.groupBy { it.album ?: "Online" }.forEach { (section, list) ->
+            item { SectionTitle(section) }
+            item { MediaCarousel(list) { i -> c.player.playItems(list, i) } }
         }
         if (recentPlayed.isNotEmpty()) { item { SectionTitle("Recently played") }; item { MediaCarousel(recentPlayed) { i -> c.player.playItems(recentPlayed, i) } } }
         if (favorites.isNotEmpty()) { item { SectionTitle("Favourites") }; item { MediaCarousel(favorites) { i -> c.player.playItems(favorites, i) } } }
