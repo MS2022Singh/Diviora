@@ -1,5 +1,8 @@
 # DIVIORA Music
 
+**Download:** https://github.com/MS2022Singh/Diviora/releases/latest · Android, Windows, macOS, Linux ·
+[Install guide](docs/INSTALL.md) · [Publish your own content](docs/catalog.md)
+
 A native, local-first Android audio and video player with **AutoPlay Routines**: schedule any number of
 tracks, playlists, videos or streams to play automatically, at any number of times, once or on a repeating schedule.
 

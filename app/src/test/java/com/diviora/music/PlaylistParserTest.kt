@@ -1,6 +1,6 @@
 package com.diviora.music
 
-import com.diviora.music.data.repo.PlaylistParser
+import com.diviora.music.core.catalog.PlaylistParser
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

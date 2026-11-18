@@ -1,4 +1,4 @@
-package com.diviora.music.data.repo
+package com.diviora.music.core.catalog
 
 /** Minimal parser for .m3u/.m3u8 (extended or plain) and .pls playlist text. Only http(s) entries are kept. */
 object PlaylistParser {
