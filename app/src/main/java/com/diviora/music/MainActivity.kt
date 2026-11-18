@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             val r = lib.importShared(listOf(uri)); playIds(r.ids)
                         }
-                    }.onFailure { UiEvents.message("Could not open: ${it.message}") }
+                    }.onFailure { com.diviora.music.ui.handleAddStreamFailure(this@MainActivity, it) }
                 }
             }
             Intent.ACTION_SEND -> {
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                                 val id = lib.addStream(url, null); UiEvents.message("Stream added"); playIds(listOf(id))
                             }
                         }
-                    }.onFailure { UiEvents.message("Share failed: ${it.message}") }
+                    }.onFailure { com.diviora.music.ui.handleAddStreamFailure(this@MainActivity, it) }
                 }
             }
             Intent.ACTION_SEND_MULTIPLE -> {

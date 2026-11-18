@@ -3,6 +3,7 @@ package com.diviora.music
 import android.app.Application
 import android.content.Context
 import com.diviora.music.data.db.AppDatabase
+import com.diviora.music.data.repo.CatalogRepository
 import com.diviora.music.data.repo.LibraryRepository
 import com.diviora.music.data.repo.RoutineRepository
 import com.diviora.music.data.repo.SettingsStore
@@ -25,6 +26,7 @@ class AppContainer(context: Context) {
     val library = LibraryRepository(context, db)
     val routines = RoutineRepository(db, scheduler)
     val settings = SettingsStore(context)
+    val catalogs = CatalogRepository(context, db)
     val player = PlayerConnection(context, appScope)
 }
 
@@ -40,6 +42,8 @@ class DivioraApp : Application() {
             RoutineNotifications.ensureChannel(this@DivioraApp)
             WatchdogWorker.enqueue(this@DivioraApp)
             container.scheduler.rescheduleAll("app start")
+            com.diviora.music.scheduler.CatalogSyncWorker.enqueue(this@DivioraApp)
+            container.catalogs.syncAll()
         }
     }
 }

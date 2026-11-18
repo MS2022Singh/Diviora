@@ -19,6 +19,8 @@ android {
         versionCode = providers.gradleProperty("diviora.versionCode").get().toInt()
         versionName = providers.gradleProperty("diviora.versionName").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Developer content server: the catalog every install loads (empty = bundled demo catalog). See docs/catalog.md.
+        buildConfigField("String", "CATALOG_URL", "\"${providers.gradleProperty("diviora.catalogUrl").getOrElse("")}\"")
     }
     signingConfigs {
         create("release") {
@@ -89,6 +91,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 

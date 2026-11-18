@@ -70,7 +70,7 @@ import com.diviora.music.ui.components.formatDuration
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
-private val libraryTabs = listOf("Songs", "Videos", "Albums", "Artists", "Streams", "Playlists", "Favourites")
+private val libraryTabs = listOf("Online", "Songs", "Videos", "Albums", "Artists", "Streams", "Playlists", "Favourites")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,13 +102,19 @@ fun LibraryScreen(nav: NavHostController) {
             libraryTabs.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i; group = null }, text = { Text(t) }) }
         }
         val dao = c.db.media()
-        when (tab) {
+        when (tab - 1) {
+            -1 -> {
+                val l by remember { c.catalogs.observeItems() }.collectAsStateWithLifecycle(emptyList())
+                if (l.isEmpty()) EmptyState(Icons.Filled.Link, "No online content yet",
+                    "Content from the developer's server and sources you add in Settings → Content sources appears here.")
+                else MediaList(l, player.mediaId, header = true)
+            }
             0 -> { val l by remember { dao.observeByKind(MediaKind.AUDIO) }.collectAsStateWithLifecycle(emptyList()); MediaList(l, player.mediaId, header = true) }
             1 -> { val l by remember { dao.observeByKind(MediaKind.VIDEO) }.collectAsStateWithLifecycle(emptyList()); MediaList(l, player.mediaId, header = true) }
             2, 3 -> {
                 val g = group
                 if (g == null) {
-                    val groups by remember(tab) { if (tab == 2) dao.observeAlbums() else dao.observeArtists() }.collectAsStateWithLifecycle(emptyList())
+                    val groups by remember(tab) { if (tab == 3) dao.observeAlbums() else dao.observeArtists() }.collectAsStateWithLifecycle(emptyList())
                     if (groups.isEmpty()) EmptyState(Icons.Filled.MusicNote, "Nothing here yet", "Scan or import music with tags.")
                     LazyColumn {
                         items(groups, key = { it.name }) { gc ->
@@ -116,7 +122,7 @@ fun LibraryScreen(nav: NavHostController) {
                         }
                     }
                 } else {
-                    val l by remember(g, tab) { if (tab == 2) dao.observeAlbum(g) else dao.observeArtist(g) }.collectAsStateWithLifecycle(emptyList())
+                    val l by remember(g, tab) { if (tab == 3) dao.observeAlbum(g) else dao.observeArtist(g) }.collectAsStateWithLifecycle(emptyList())
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { group = null }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -269,7 +275,8 @@ fun PlaylistScreen(nav: NavHostController, id: Long) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportSheet(onDismiss: () -> Unit) {
-    val c = LocalContext.current.container
+    val ctx = LocalContext.current
+    val c = ctx.container
     val scope = rememberCoroutineScope()
     var url by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
@@ -295,14 +302,15 @@ fun ImportSheet(onDismiss: () -> Unit) {
                 FilledTonalButton(onClick = { pickFolder.launch(null) }) { Icon(Icons.Filled.Folder, null); Text(" Folder") }
                 FilledTonalButton(onClick = { RescanRequest.request(); onDismiss() }) { Text("Rescan device") }
             }
-            Text("Stream URL (internet radio, HLS .m3u8, DASH .mpd, MP3/AAC/MP4 link)", style = MaterialTheme.typography.labelLarge)
+            Text("Media link: direct MP3/AAC/MP4/WebM file, HLS .m3u8, DASH .mpd or internet radio. " +
+                "YouTube/Spotify page links open in their own app.", style = MaterialTheme.typography.labelLarge)
             OutlinedTextField(url, { url = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://…") })
             OutlinedTextField(title, { title = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), label = { Text("Title (optional)") })
             FilledTonalButton(enabled = url.isNotBlank(), onClick = {
                 scope.launch {
                     runCatching { c.library.addStream(url, title) }
                         .onSuccess { UiEvents.message("Stream added"); onDismiss() }
-                        .onFailure { UiEvents.message(it.message ?: "Invalid URL") }
+                        .onFailure { com.diviora.music.ui.handleAddStreamFailure(ctx, it) }
                 }
             }) { Icon(Icons.Filled.Link, null); Text(" Add stream") }
             Text("Or paste an M3U / PLS playlist", style = MaterialTheme.typography.labelLarge)

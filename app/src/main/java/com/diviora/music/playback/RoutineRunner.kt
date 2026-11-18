@@ -52,12 +52,12 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
         val all = withContext(Dispatchers.IO) { dao.items(routine.id) }
         val online = isOnline(service)
         val playable = withContext(Dispatchers.IO) {
-            all.filter { m -> m.available && (if (m.kind == MediaKind.STREAM) online else c.library.isReadable(m)) }
+            all.filter { m -> m.available && (if (m.uri.startsWith("http")) online else c.library.isReadable(m)) }
         }
         if (playable.isEmpty()) {
             val why = when {
                 all.isEmpty() -> "Routine has no items"
-                all.any { it.kind == MediaKind.STREAM } && !online -> "Offline; no local items available"
+                all.any { it.uri.startsWith("http") } && !online -> "Offline; no local items available"
                 else -> "Files are missing or access was revoked"
             }
             return finish(ExecutionResult.FAILED, why)
