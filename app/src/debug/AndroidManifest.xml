@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug builds only: lets command-line tests create a routine. adb shell am broadcast -n <pkg>/com.diviora.music.debug.DebugRoutineReceiver -->
+        <receiver android:name="com.diviora.music.debug.DebugRoutineReceiver" android:exported="true"
+            android:permission="android.permission.DUMP" />
+    </application>
+</manifest>
