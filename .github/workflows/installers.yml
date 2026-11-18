@@ -50,7 +50,9 @@ jobs:
           f=$(find desktop/build/compose/binaries -name '${{ matrix.pattern }}' | head -1)
           cp "$f" "out/${{ matrix.out }}"
       - uses: actions/upload-artifact@v4
-        with: { name: desktop-${{ matrix.os }}, path: out/* }
+        with:
+          name: desktop-${{ matrix.os }}
+          path: out/*
   publish:
     needs: [android, desktop]
     if: always() && needs.android.result == 'success'
