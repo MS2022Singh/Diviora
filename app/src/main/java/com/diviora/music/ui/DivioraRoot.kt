@@ -54,6 +54,11 @@ object UiEvents {
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages = _messages.asSharedFlow()
     fun message(text: String) { _messages.tryEmit(text) }
+
+    private val _routes = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val routes = _routes.asSharedFlow()
+    /** Opens the routine editor pre-filled with these items, so the user picks the date and time. */
+    fun scheduleItems(mediaIds: List<Long>) { _routes.tryEmit("routine/0?media=" + mediaIds.joinToString(",")) }
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -74,6 +79,7 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { UiEvents.messages.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(Unit) { UiEvents.routes.collect { nav.navigate(it) { launchSingleTop = true } } }
     LaunchedEffect(openRoute) { openRoute?.let { nav.navigate(it) { launchSingleTop = true }; onRouteConsumed() } }
 
     // First-run permissions: media read + notifications. Then scan the library.
@@ -122,8 +128,15 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
             composable("settings") { SettingsScreen(nav) }
             composable("history") { HistoryScreen(nav) }
             composable("player") { NowPlayingScreen(nav) }
-            composable("routine/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
-                RoutineEditorScreen(nav, it.arguments?.getLong("id") ?: 0L)
+            composable(
+                "routine/{id}?media={media}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.LongType },
+                    navArgument("media") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) {
+                RoutineEditorScreen(nav, it.arguments?.getLong("id") ?: 0L,
+                    prefillMediaIds = it.arguments?.getString("media").orEmpty().split(',').mapNotNull(String::toLongOrNull))
             }
             composable("playlist/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
                 PlaylistScreen(nav, it.arguments?.getLong("id") ?: 0L)
@@ -156,7 +169,7 @@ fun openInPlatformApp(context: android.content.Context, url: String) {
 
 /** Shows the right message for a failed "add stream", handing platform links off to their app. */
 fun handleAddStreamFailure(context: android.content.Context, e: Throwable) {
-    if (e is com.diviora.music.data.repo.PlatformLinkException) {
+    if (e is com.diviora.music.core.catalog.PlatformLinkException) {
         UiEvents.message(e.message ?: "Opening in ${e.platform}"); openInPlatformApp(context, e.url)
     } else UiEvents.message(e.message ?: "Invalid URL")
 }

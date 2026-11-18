@@ -1,0 +1,77 @@
+name: Build installers
+# Every push to main builds the Android APK and the Windows, macOS and Linux installers, then publishes them on
+# the "latest" GitHub Release: https://github.com/MS2022Singh/Diviora/releases/latest
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: installers
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK platform
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+      - name: Build APK
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease
+          mkdir -p out && cp app/build/outputs/apk/release/app-release.apk out/DIVIORA-Music-Android.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: out/* }
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, task: packageMsi, pattern: '*.msi', out: DIVIORA-Music-Windows.msi }
+          - { os: macos-latest, task: packageDmg, pattern: '*.dmg', out: DIVIORA-Music-macOS.dmg }
+          - { os: ubuntu-latest, task: packageDeb, pattern: '*.deb', out: DIVIORA-Music-Linux.deb }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests and installer
+        shell: bash
+        run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true :desktop:test :desktop:${{ matrix.task }}
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir -p out
+          f=$(find desktop/build/compose/binaries -name '${{ matrix.pattern }}' | head -1)
+          cp "$f" "out/${{ matrix.out }}"
+      - uses: actions/upload-artifact@v4
+        with: { name: desktop-${{ matrix.os }}, path: out/* }
+  publish:
+    needs: [android, desktop]
+    if: always() && needs.android.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Replace the "latest" release
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release delete latest --cleanup-tag --yes || true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: DIVIORA Music, latest build
+          make_latest: true
+          body: |
+            Download the file for your device. Step-by-step help: docs/INSTALL.md
+            * Android phone/tablet: DIVIORA-Music-Android.apk
+            * Windows 10/11: DIVIORA-Music-Windows.msi
+            * macOS: DIVIORA-Music-macOS.dmg
+            * Linux (Ubuntu/Debian): DIVIORA-Music-Linux.deb
+            Built from ${{ github.sha }}.
+          files: dist/*

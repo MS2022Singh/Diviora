@@ -18,3 +18,6 @@ keystore.properties
 google-services.json
 # Logs
 *.log
+
+# Public sideload signing key (not a secret, see docs/INSTALL.md); Play Store builds use release.jks from CI secrets
+!app/sideload.keystore

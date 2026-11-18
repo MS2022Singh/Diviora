@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -153,6 +154,7 @@ fun MediaList(items: List<MediaEntity>, playingId: String?, header: Boolean = fa
             Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton(onClick = { c.player.playItems(items) }) { Icon(Icons.Filled.PlayArrow, null); Text(" Play all") }
                 FilledTonalButton(onClick = { c.player.playItems(items.shuffled()) }) { Icon(Icons.Filled.Shuffle, null); Text(" Shuffle") }
+                FilledTonalButton(onClick = { UiEvents.scheduleItems(items.take(200).map { it.id }) }) { Icon(Icons.Filled.Alarm, null); Text(" Schedule") }
             }
         }
         items(items.size, key = { items[it].id }) { i ->
@@ -179,6 +181,8 @@ fun MediaItemMenu(m: MediaEntity, playlistId: Long? = null) {
     }
     IconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "More") }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenuItem(text = { Text("Schedule…") }, leadingIcon = { Icon(Icons.Filled.Alarm, null) },
+            onClick = { open = false; UiEvents.scheduleItems(listOf(m.id)) })
         DropdownMenuItem(text = { Text("Play next") }, onClick = { open = false; c.player.addToQueue(listOf(m), next = true) })
         DropdownMenuItem(text = { Text("Add to queue") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null) },
             onClick = { open = false; c.player.addToQueue(listOf(m)); UiEvents.message("Added to queue") })

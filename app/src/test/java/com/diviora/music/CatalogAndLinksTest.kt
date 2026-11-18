@@ -1,8 +1,8 @@
 package com.diviora.music
 
-import com.diviora.music.data.repo.CatalogException
-import com.diviora.music.data.repo.CatalogParser
-import com.diviora.music.data.repo.PlatformLinks
+import com.diviora.music.core.catalog.CatalogException
+import com.diviora.music.core.catalog.CatalogParser
+import com.diviora.music.core.catalog.PlatformLinks
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

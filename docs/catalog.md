@@ -1,4 +1,51 @@
-# Developer content server ("content sources")
+# Supplying your own content to all users: step by step
+
+You (the developer) publish a list of your audio/video files on the internet. Every copy of DIVIORA reads that list
+and shows your content in **Library → Online** and on the **Home** screen. Users can play it, favourite it and schedule it.
+When you change the list, users see the change within 6 hours (or immediately via **Settings → Content sources → Refresh**),
+**without installing an update**.
+
+## The easy way: free hosting on GitHub Pages (about 15 minutes, no server needed)
+1. **Create a public content repository.** On github.com click **New repository**, name it `diviora-content`, choose
+   **Public**, tick **Add a README**, then click **Create**. (Public is needed so phones can download the files.)
+2. **Upload your media.** In that repo click **Add file → Upload files**, drag in your files (MP3, M4A, MP4…), then
+   click **Commit changes**. Each file can be up to 100 MB. For bigger or many files, see "Larger libraries" below.
+3. **Turn on GitHub Pages.** In that repo go to **Settings → Pages → Branch: main → / (root) → Save**. After 1–2 minutes your site
+   is at `https://ms2022singh.github.io/diviora-content/`. A file `song1.mp3` is then at
+   `https://ms2022singh.github.io/diviora-content/song1.mp3`.
+4. **Create `catalog.json`.** Click **Add file → Create new file**, name it `catalog.json`, paste the template below and change
+   the titles and URLs to your files. Click **Commit changes**.
+   ```json
+   {
+     "version": 1,
+     "name": "My DIVIORA Channel",
+     "items": [
+       { "id": "song1", "type": "audio", "title": "My first song", "artist": "Me",
+         "url": "https://ms2022singh.github.io/diviora-content/song1.mp3" },
+       { "id": "video1", "type": "video", "title": "My first video",
+         "url": "https://ms2022singh.github.io/diviora-content/video1.mp4" }
+     ],
+     "playlists": [ { "id": "best", "title": "Best of", "itemIds": ["song1"] } ]
+   }
+   ```
+   Every item needs a different `id`. The `type` is `audio`, `video` or `stream` (live radio).
+5. **Check it.** Open `https://ms2022singh.github.io/diviora-content/catalog.json` in a browser; you should see your text.
+   Optional: `python3 scripts/validate-catalog.py catalog.json`.
+6. **Try it in the app right away.** In DIVIORA open **Settings → Content sources**, paste the catalog URL and press
+   **Add source**. Your items appear in **Library → Online**.
+7. **Make it the default for every user.** In the main Diviora repo, edit `gradle.properties` and set
+   `diviora.catalogUrl=https://ms2022singh.github.io/diviora-content/catalog.json`, then commit it to `main`. GitHub rebuilds all
+   installers. Everyone who installs that version gets your content automatically, with nothing to type.
+8. **Add more content later.** Upload new files and add entries to `catalog.json`. Users receive them automatically.
+
+## Larger libraries or your own server
+Any HTTPS host works: your own server (nginx/Apache), Amazon S3, Cloudflare R2, Google Cloud Storage, Firebase Hosting,
+Bunny CDN, etc. Put `catalog.json` and your media there and use the catalog's https:// address in step 6/7. The
+`content-server/` folder in this repo is a ready template to copy.
+
+---
+
+# Reference
 
 DIVIORA can load audio and video that **you, the developer or content provider,** publish on your own server. Every
 user of your build gets that content in **Library → Online** and on the Home screen. They can play it, favourite it,

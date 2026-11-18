@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -123,6 +124,9 @@ fun NowPlayingScreen(nav: NavHostController) {
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            IconButton(onClick = { s.mediaId?.toLongOrNull()?.let { com.diviora.music.ui.UiEvents.scheduleItems(listOf(it)) } }) {
+                Icon(Icons.Filled.Alarm, "Schedule this")
+            }
             Box {
                 IconButton(onClick = { speedMenu = true }) { Icon(Icons.Filled.Speed, "Playback speed") }
                 DropdownMenu(speedMenu, { speedMenu = false }) {

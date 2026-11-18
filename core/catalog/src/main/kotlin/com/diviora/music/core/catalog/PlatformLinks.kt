@@ -1,4 +1,4 @@
-package com.diviora.music.data.repo
+package com.diviora.music.core.catalog
 
 import java.net.URI
 

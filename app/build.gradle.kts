@@ -23,6 +23,14 @@ android {
         buildConfigField("String", "CATALOG_URL", "\"${providers.gradleProperty("diviora.catalogUrl").getOrElse("")}\"")
     }
     signingConfigs {
+        // Stable, intentionally public key for APKs downloaded from GitHub Releases, so updates install over
+        // older versions. Google Play builds use the private release.jks (CI secret) instead.
+        create("sideload") {
+            storeFile = file("sideload.keystore")
+            storePassword = "diviora-sideload"
+            keyAlias = "diviora"
+            keyPassword = "diviora-sideload"
+        }
         create("release") {
             val ks = rootProject.file("release.jks")
             if (ks.exists()) {
@@ -38,9 +46,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (rootProject.file("release.jks").exists()) signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(if (rootProject.file("release.jks").exists()) "release" else "sideload")
         }
-        debug { applicationIdSuffix = ".debug" }
+        debug { applicationIdSuffix = ".debug"; signingConfig = signingConfigs.getByName("sideload") }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -65,6 +73,7 @@ ksp {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:catalog"))
     implementation(project(":scheduler:recurrence"))
 
     implementation(libs.androidx.core.ktx)
