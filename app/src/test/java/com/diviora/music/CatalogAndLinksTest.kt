@@ -14,7 +14,7 @@ class CatalogAndLinksTest {
         val f = listOf("src/main/assets/catalog/demo-catalog.json", "app/src/main/assets/catalog/demo-catalog.json").map(::File).first { it.exists() }
         val (c, warnings) = CatalogParser.parse(f.readText())
         assertEquals("DIVIORA Demo", c.name)
-        assertEquals(7, c.items.size)
+        assertEquals(9, c.items.size)
         assertTrue(warnings.isEmpty())
     }
 

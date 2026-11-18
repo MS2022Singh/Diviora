@@ -73,6 +73,13 @@ class Player(initialVolume: Double) {
         _state.update { it.copy(queue = it.queue + items) }
     }
 
+    /** Stop playback and clear the queue (player bar close button). */
+    fun close() {
+        cancelRoutineTimers()
+        fx { mediaPlayer?.let { it.stop(); it.dispose() }; mediaPlayer = null; onPlayerChanged?.invoke(null) }
+        _state.update { it.copy(queue = emptyList(), index = -1, playing = false, positionMs = 0, durationMs = 0, error = null) }
+    }
+
     fun toggle() = fx { val mp = mediaPlayer ?: return@fx; if (mp.status == MediaPlayer.Status.PLAYING) mp.pause() else mp.play() }
     fun pause() = fx { mediaPlayer?.pause() }
     fun next() { if (advance(+1)) load(true) }

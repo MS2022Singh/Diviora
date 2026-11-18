@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -99,13 +100,20 @@ fun SettingsScreen(nav: NavHostController) {
                     val t = LocalDateTime.now().plusSeconds(119).withSecond(0).withNano(0)
                     c.routines.save(RoutineDraft(name = "Test routine ${t.toLocalTime().withNano(0).withSecond(0)}", mediaIds = ids.take(3),
                         slots = listOf(SlotSpec(t.hour * 60 + t.minute, Repeat.Once, t.toLocalDate().toEpochDay())), rules = RoutineRules(fadeInSeconds = 3)))
-                    UiEvents.message("Test routine will play at ${t.toLocalTime().withSecond(0).withNano(0)}")
+                    UiEvents.message("Test routine will play at ${t.toLocalTime().withSecond(0).withNano(0)}. Check Routines → History afterwards.")
                 }
             }) { Text("Quick test: auto-schedule a routine ~2 minutes from now") }
             TextButton(onClick = { scope.launch { c.scheduler.rescheduleAll("manual"); UiEvents.message("Alarms re-registered") } }) { Text("Re-register alarms") }
         }
 
-        ContentSources()
+        if (BuildConfig.DEBUG || settings.developerUnlocked) {
+            Section("Developer options")
+            Text("Only for the app developer. Users of release builds never see this section.",
+                Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ContentSources()
+            if (!BuildConfig.DEBUG) TextButton(onClick = { scope.launch { c.settings.setDeveloper(false); c.catalogs.syncAll(); UiEvents.message("Developer options locked") } },
+                modifier = Modifier.padding(horizontal = 8.dp)) { Text("Lock developer options") }
+        }
 
         Section("Library")
         ListItem(headlineContent = { Text("Rescan device") }, supportingContent = { Text("Find new music and videos in device storage") },
@@ -119,7 +127,11 @@ fun SettingsScreen(nav: NavHostController) {
             trailingContent = { Switch(settings.dynamicColor, { on -> scope.launch { c.settings.setDynamic(on) } }) })
 
         Section("About")
-        ListItem(headlineContent = { Text("DIVIORA Music ${BuildConfig.VERSION_NAME}") },
+        var taps by remember { mutableIntStateOf(0) }
+        var askPass by remember { mutableStateOf(false) }
+        if (askPass) DeveloperUnlockDialog(onDismiss = { askPass = false })
+        ListItem(modifier = Modifier.clickable { if (++taps >= 7 && !settings.developerUnlocked && !BuildConfig.DEBUG) { taps = 0; askPass = true } },
+            headlineContent = { Text("DIVIORA Music ${BuildConfig.VERSION_NAME}") },
             supportingContent = { Text("Local-first player with AutoPlay Routines. Proprietary; third-party components under Apache-2.0 / MIT.") })
     }
 }
@@ -148,8 +160,8 @@ private fun ContentSources() {
     val sources by remember { c.catalogs.observeSources() }.collectAsStateWithLifecycle(emptyList())
     var url by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    Section("Content sources")
-    Text("Online audio/video published by the app developer or any content server (DIVIORA catalog JSON over HTTPS).",
+    Text("Content sources", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp))
+    Text("The built-in source is set in the build (diviora.catalogUrl) and reaches every user. Sources added here exist only on this device, for testing.",
         Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     sources.forEach { s ->
         ListItem(
@@ -180,4 +192,32 @@ private fun ContentSources() {
             scope.launch { val r = c.catalogs.syncAll(); UiEvents.message("Refreshed ${r.size} source(s)" + if (r.any { it.lastError != null }) ", some failed" else ""); busy = false }
         }) { Text("Refresh all") }
     }
+}
+
+/** Release builds: unlock developer options with the passphrase whose hash is baked into the build. */
+@Composable
+private fun DeveloperUnlockDialog(onDismiss: () -> Unit) {
+    val c = LocalContext.current.container
+    val scope = rememberCoroutineScope()
+    var pass by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Developer options") },
+        text = {
+            Column {
+                Text("Enter the developer passphrase.")
+                OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text("Passphrase") },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val ok = BuildConfig.DEV_UNLOCK_HASH.isNotEmpty() && java.security.MessageDigest.getInstance("SHA-256")
+                    .digest("diviora-dev-v1:$pass".toByteArray()).joinToString("") { "%02x".format(it) } == BuildConfig.DEV_UNLOCK_HASH
+                if (ok) scope.launch { c.settings.setDeveloper(true); UiEvents.message("Developer options unlocked") } else UiEvents.message("Wrong passphrase")
+                onDismiss()
+            }) { Text("Unlock") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

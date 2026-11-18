@@ -64,7 +64,8 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE id = :id")
     suspend fun get(id: Long): MediaEntity?
 
-    @Query("SELECT id FROM media WHERE available = 1 AND kind != 'STREAM' ORDER BY dateAddedMs DESC LIMIT 20")
+    /** Local files only (no online/catalog/stream items), newest first: used by the quick test routine. */
+    @Query("SELECT id FROM media WHERE available = 1 AND uri NOT LIKE 'http%' ORDER BY dateAddedMs DESC LIMIT 20")
     suspend fun recentLocalIds(): List<Long>
 
     @Query("SELECT * FROM media WHERE id IN (:ids)")

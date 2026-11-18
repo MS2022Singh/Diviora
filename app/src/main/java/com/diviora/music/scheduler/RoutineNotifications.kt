@@ -51,6 +51,12 @@ object RoutineNotifications {
         post(context, 4102, "Scheduled video started", "Tap to watch: $title", open)
     }
 
+    fun showOpenRoute(context: Context, title: String, text: String, route: String) {
+        val open = PendingIntent.getActivity(context, 9, Intent(context, MainActivity::class.java)
+            .putExtra(MainActivity.EXTRA_OPEN, route), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        post(context, 4104, title, text, open)
+    }
+
     fun showFailure(context: Context, text: String) {
         val open = PendingIntent.getActivity(context, 8, Intent(context, MainActivity::class.java)
             .putExtra(MainActivity.EXTRA_OPEN, "history"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)

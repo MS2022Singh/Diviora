@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +9,9 @@ plugins {
 }
 
 val appId = providers.gradleProperty("diviora.applicationId").get()
+val devPass = providers.gradleProperty("diviora.devPassphrase").orNull.orEmpty()
+val devHash = if (devPass.isBlank()) "" else MessageDigest.getInstance("SHA-256")
+    .digest("diviora-dev-v1:$devPass".toByteArray()).joinToString("") { b -> "%02x".format(b) }
 
 android {
     namespace = "com.diviora.music"
@@ -20,6 +24,8 @@ android {
         versionName = providers.gradleProperty("diviora.versionName").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Developer content server: the catalog every install loads (empty = bundled demo catalog). See docs/catalog.md.
+        // Developer options unlock: SHA-256 of "diviora-dev-v1:" + passphrase (diviora.devPassphrase / CI secret). Empty = locked.
+        buildConfigField("String", "DEV_UNLOCK_HASH", "\"$devHash\"")
         buildConfigField("String", "CATALOG_URL", "\"${providers.gradleProperty("diviora.catalogUrl").getOrElse("")}\"")
     }
     signingConfigs {
@@ -101,6 +107,7 @@ dependencies {
     implementation(libs.work.runtime)
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
+    implementation(libs.youtube.player)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 

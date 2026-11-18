@@ -8,6 +8,7 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.diviora.music.core.model.MediaSource
 import com.diviora.music.data.db.MediaEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,14 +71,29 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
         if (c != null) block(c) else { pending += block; connect() }
     }
 
-    fun playItems(items: List<MediaEntity>, startIndex: Int = 0) = withController { c ->
-        if (items.isEmpty()) return@withController
-        c.setMediaItems(items.map { it.toMediaItem() }, startIndex.coerceIn(0, items.lastIndex), 0L)
-        c.prepare(); c.play()
+    fun playItems(items: List<MediaEntity>, startIndex: Int = 0) {
+        if (items.isEmpty()) return
+        val target = items[startIndex.coerceIn(0, items.lastIndex)]
+        if (target.source == MediaSource.EMBED) {
+            // YouTube/Spotify/SoundCloud play in their official on-screen player, not in ExoPlayer.
+            controller?.pause()
+            com.diviora.music.ui.UiEvents.open("embed/${target.id}")
+            return
+        }
+        val queue = items.filter { it.source != MediaSource.EMBED }
+        withController { c ->
+            c.setMediaItems(queue.map { it.toMediaItem() }, queue.indexOf(target).coerceAtLeast(0), 0L)
+            c.prepare(); c.play()
+        }
     }
 
+    /** Stops playback and clears the queue (the mini player's close button). */
+    fun close() = withController { c -> c.stop(); c.clearMediaItems(); setSleepTimer(null) }
+    fun seekBy(deltaMs: Long) = withController { c -> c.seekTo((c.currentPosition + deltaMs).coerceAtLeast(0)) }
+
     fun addToQueue(items: List<MediaEntity>, next: Boolean = false) = withController { c ->
-        val mapped = items.map { it.toMediaItem() }
+        val mapped = items.filter { it.source != MediaSource.EMBED }.map { it.toMediaItem() }
+        if (mapped.isEmpty()) return@withController
         if (c.mediaItemCount == 0) { c.setMediaItems(mapped); c.prepare(); return@withController }
         if (next) c.addMediaItems(c.currentMediaItemIndex + 1, mapped) else c.addMediaItems(mapped)
     }
