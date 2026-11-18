@@ -32,7 +32,8 @@ jobs:
       matrix:
         include:
           - { os: windows-latest, task: packageMsi, pattern: '*.msi', out: DIVIORA-Music-Windows.msi }
-          - { os: macos-latest, task: packageDmg, pattern: '*.dmg', out: DIVIORA-Music-macOS.dmg }
+          # macos-latest (Apple Silicon) is often capacity-starved; the Intel build also runs on Apple Silicon via Rosetta.
+          - { os: macos-15-intel, task: packageDmg, pattern: '*.dmg', out: DIVIORA-Music-macOS.dmg }
           - { os: ubuntu-latest, task: packageDeb, pattern: '*.deb', out: DIVIORA-Music-Linux.deb }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
