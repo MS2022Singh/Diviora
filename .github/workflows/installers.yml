@@ -63,40 +63,70 @@ jobs:
           name: desktop-${{ matrix.os }}
           path: out/*
   publish:
+    # Installers go to a PUBLIC releases repository so users can download them while this code repo stays private.
+    # Setup (once): create the public repo MS2022Singh/Diviora-releases and add a fine-grained token with
+    # "Contents: read and write" on it as the secret RELEASES_TOKEN. Without the token, this repo's own Releases is used.
     needs: [android, desktop]
-    # Replace the download page only when every installer built, so a stuck runner never removes a file.
+    # Publish only when every installer built, so a stuck runner never removes a file.
     if: needs.android.result == 'success' && needs.desktop.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
+      - name: Choose where to publish
+        id: target
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          RELEASES_REPO: ${{ vars.DIVIORA_RELEASES_REPO }}
+        run: |
+          name=$(grep '^diviora.versionName=' gradle.properties | cut -d= -f2)
+          code=$(grep '^diviora.versionCode=' gradle.properties | cut -d= -f2)
+          if [ -n "$RELEASES_TOKEN" ]; then repo="${RELEASES_REPO:-MS2022Singh/Diviora-releases}"; else
+            repo="${{ github.repository }}"; echo "::warning::RELEASES_TOKEN not set: publishing to this repository's Releases (users cannot download them if it is private)"; fi
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"; echo "name=$name" >> "$GITHUB_OUTPUT"; echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Publishing $name ($code) to $repo"
       - name: Write version.json (apps read it to offer updates)
         run: |
-          code=$(grep '^diviora.versionCode=' gradle.properties | cut -d= -f2)
-          name=$(grep '^diviora.versionName=' gradle.properties | cut -d= -f2)
-          base="https://github.com/${{ github.repository }}/releases/latest/download"
+          base="https://github.com/${{ steps.target.outputs.repo }}/releases/latest/download"
           notes=$(awk '/^## \[/{n++} n==3{exit} n==2' CHANGELOG.md | tail -n +2 | head -40 | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read().strip()))')
           cat > dist/version.json <<JSON
-          {"versionCode": $code, "versionName": "$name", "notes": $notes,
+          {"versionCode": ${{ steps.target.outputs.code }}, "versionName": "${{ steps.target.outputs.name }}", "notes": $notes,
            "android": "$base/DIVIORA-Music-Android.apk", "windows": "$base/DIVIORA-Music-Windows.msi",
            "macos": "$base/DIVIORA-Music-macOS.dmg", "linux": "$base/DIVIORA-Music-Linux.deb",
-           "page": "https://github.com/${{ github.repository }}/releases/latest"}
+           "page": "https://github.com/${{ steps.target.outputs.repo }}/releases/latest"}
           JSON
-          python3 -c 'import json;print(json.load(open("dist/version.json"))["versionName"])'
-      - name: Replace the "latest" release
-        env: { GH_TOKEN: '${{ github.token }}' }
-        run: gh release delete latest --cleanup-tag --yes || true
+          python3 -c 'import json;print(json.load(open("dist/version.json")))'
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: DIVIORA Music, latest build
+          repository: ${{ steps.target.outputs.repo }}
+          token: ${{ secrets.RELEASES_TOKEN || github.token }}
+          tag_name: v${{ steps.target.outputs.name }}
+          name: DIVIORA Music ${{ steps.target.outputs.name }}
           make_latest: true
           body: |
-            Download the file for your device. Step-by-step help: docs/INSTALL.md
-            * Android phone/tablet: DIVIORA-Music-Android.apk
-            * Windows 10/11: DIVIORA-Music-Windows.msi
-            * macOS: DIVIORA-Music-macOS.dmg
-            * Linux (Ubuntu/Debian): DIVIORA-Music-Linux.deb
-            Built from ${{ github.sha }}.
+            ## Download
+            | Device | File |
+            |---|---|
+            | Android phone / tablet | **DIVIORA-Music-Android.apk** |
+            | Windows 10 / 11 | **DIVIORA-Music-Windows.msi** |
+            | macOS | **DIVIORA-Music-macOS.dmg** |
+            | Linux (Ubuntu/Debian) | **DIVIORA-Music-Linux.deb** |
+
+            **Android:** tap the APK → Open → (if asked) Settings → Allow from this source → Install.
+            **Windows:** open the .msi → if "Windows protected your PC": More info → Run anyway → Install.
+            **macOS:** open the .dmg → drag to Applications → first time: right-click → Open.
+            **Linux:** `sudo apt install ./DIVIORA-Music-Linux.deb`
+
+            Already installed? DIVIORA offers this update by itself (Home → "Update available").
           files: dist/*
+      - name: Publish the download page README
+        if: steps.target.outputs.repo != github.repository
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          REPO: ${{ steps.target.outputs.repo }}
+        run: |
+          sha=$(gh api "repos/$REPO/contents/README.md" --jq .sha 2>/dev/null || true)
+          content=$(base64 -w0 docs/INSTALL.md)
+          if [ -n "$sha" ]; then gh api -X PUT "repos/$REPO/contents/README.md" -f message="Install guide" -f content="$content" -f sha="$sha" > /dev/null
+          else gh api -X PUT "repos/$REPO/contents/README.md" -f message="Install guide" -f content="$content" > /dev/null; fi

@@ -4,7 +4,7 @@ An audio and video player for **Android, Windows, macOS and Linux**, with **Auto
 videos, playlists or streams and the dates and times they should play by themselves.
 
 ## ⬇️ Download
-**https://github.com/MS2022Singh/Diviora/releases/latest**
+**https://github.com/MS2022Singh/Diviora-releases/releases/latest**
 
 | Device | File | How to install |
 |---|---|---|
