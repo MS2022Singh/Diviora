@@ -41,7 +41,7 @@ compose.desktop {
         mainClass = "com.diviora.music.desktop.MainKt"
         val catalogUrl = (providers.gradleProperty("diviora.catalogUrl").orNull?.takeIf { it.isNotBlank() }
             ?: providers.environmentVariable("DIVIORA_CATALOG_URL").orNull).orEmpty().trim()
-        jvmArgs += listOf("-Ddiviora.version=$appVersion", "-Ddiviora.catalogUrl=$catalogUrl")
+        jvmArgs += listOf("-Ddiviora.version=$appVersion", "-Ddiviora.versionCode=$versionCode", "-Ddiviora.catalogUrl=$catalogUrl")
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "DIVIORA Music"

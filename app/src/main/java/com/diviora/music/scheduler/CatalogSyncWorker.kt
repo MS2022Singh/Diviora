@@ -11,7 +11,7 @@ import androidx.work.WorkerParameters
 import com.diviora.music.DivioraApp
 import java.util.concurrent.TimeUnit
 
-/** Refreshes developer content catalogs every 6 h when online, so new content reaches users without an app update. */
+/** Refreshes the developer content catalog every hour when online (plus at app start), so new content reaches users without an app update. */
 class CatalogSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         (applicationContext as DivioraApp).container.catalogs.syncAll()
@@ -20,9 +20,10 @@ class CatalogSyncWorker(context: Context, params: WorkerParameters) : CoroutineW
 
     companion object {
         fun enqueue(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork("catalog-sync") // old 6-hour schedule
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "catalog-sync", ExistingPeriodicWorkPolicy.KEEP,
-                PeriodicWorkRequestBuilder<CatalogSyncWorker>(6, TimeUnit.HOURS)
+                "catalog-sync-hourly", ExistingPeriodicWorkPolicy.UPDATE,
+                PeriodicWorkRequestBuilder<CatalogSyncWorker>(1, TimeUnit.HOURS)
                     .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build(),
             )
         }

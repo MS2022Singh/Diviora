@@ -22,7 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,6 +62,10 @@ object UiEvents {
     /** Opens the routine editor pre-filled with these items, so the user picks the date and time. */
     fun scheduleItems(mediaIds: List<Long>) { _routes.tryEmit("routine/0?media=" + mediaIds.joinToString(",")) }
     fun open(route: String) { _routes.tryEmit(route) }
+
+    private val _updates = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val updateRequests = _updates.asSharedFlow()
+    fun showUpdate() { _updates.tryEmit(Unit) }
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -81,7 +87,13 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) { UiEvents.messages.collect { snackbar.showSnackbar(it) } }
     LaunchedEffect(Unit) { UiEvents.routes.collect { nav.navigate(it) { launchSingleTop = true } } }
-    LaunchedEffect(openRoute) { openRoute?.let { nav.navigate(it) { launchSingleTop = true }; onRouteConsumed() } }
+    var showUpdate by remember { mutableStateOf(false) }
+    if (showUpdate) UpdateDialog(onDismiss = { showUpdate = false })
+    LaunchedEffect(openRoute) {
+        openRoute?.let { if (it == "update") showUpdate = true else nav.navigate(it) { launchSingleTop = true }; onRouteConsumed() }
+    }
+    LaunchedEffect(Unit) { c.updater.check() } // quiet check on every app start
+    LaunchedEffect(Unit) { UiEvents.updateRequests.collect { showUpdate = true } }
 
     // First-run permissions: media read + notifications. Then scan the library.
     val settings by c.settings.settings.collectAsStateWithLifecycle(AppSettings(onboarded = true))

@@ -110,6 +110,7 @@ import javax.swing.JFileChooser
 
 class AppServices(val store: Store, val library: Library, val player: Player, val scheduler: Scheduler) {
     var message by mutableStateOf<String?>(null)
+    var update by mutableStateOf<com.diviora.music.core.catalog.UpdateInfo?>(null)
 }
 
 private val Violet = Color(0xFF8B5CF6)
@@ -153,6 +154,16 @@ fun DivioraDesktopApp(s: AppServices, frame: () -> Frame?) {
                         Screen.ROUTINES -> RoutinesView(s) { editing = it }
                         Screen.HISTORY -> HistoryView(s)
                         Screen.SETTINGS -> SettingsView(s)
+                    }
+                }
+            }
+            s.update?.let { u ->
+                Surface(color = MaterialTheme.colorScheme.tertiary) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("DIVIORA Music ${u.versionName} is available. Download it, then run the installer (your library is kept).",
+                            Modifier.weight(1f), color = Color(0xFF042F2E))
+                        Button(onClick = { runCatching { Desktop.getDesktop().browse(URI(u.desktopUrlFor(System.getProperty("os.name")) ?: u.page ?: "")) } }) { Text("Download update") }
+                        IconButton(onClick = { s.update = null }) { Icon(Icons.Filled.Close, "Later") }
                     }
                 }
             }

@@ -71,6 +71,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
+      - name: Write version.json (apps read it to offer updates)
+        run: |
+          code=$(grep '^diviora.versionCode=' gradle.properties | cut -d= -f2)
+          name=$(grep '^diviora.versionName=' gradle.properties | cut -d= -f2)
+          base="https://github.com/${{ github.repository }}/releases/latest/download"
+          notes=$(awk '/^## \[/{n++} n==3{exit} n==2' CHANGELOG.md | tail -n +2 | head -40 | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read().strip()))')
+          cat > dist/version.json <<JSON
+          {"versionCode": $code, "versionName": "$name", "notes": $notes,
+           "android": "$base/DIVIORA-Music-Android.apk", "windows": "$base/DIVIORA-Music-Windows.msi",
+           "macos": "$base/DIVIORA-Music-macOS.dmg", "linux": "$base/DIVIORA-Music-Linux.deb",
+           "page": "https://github.com/${{ github.repository }}/releases/latest"}
+          JSON
+          python3 -c 'import json;print(json.load(open("dist/version.json"))["versionName"])'
       - name: Replace the "latest" release
         env: { GH_TOKEN: '${{ github.token }}' }
         run: gh release delete latest --cleanup-tag --yes || true

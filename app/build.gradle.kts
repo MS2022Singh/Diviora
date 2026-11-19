@@ -30,6 +30,7 @@ android {
         // Developer content server: the catalog every install loads (empty = bundled demo catalog). See docs/catalog.md.
         // Developer options unlock: SHA-256 of "diviora-dev-v1:" + passphrase (diviora.devPassphrase / CI secret). Empty = locked.
         buildConfigField("String", "DEV_UNLOCK_HASH", "\"$devHash\"")
+        buildConfigField("String", "UPDATE_URL", "\"${providers.gradleProperty("diviora.updateUrl").getOrElse("https://github.com/MS2022Singh/Diviora/releases/latest/download/version.json")}\"")
         buildConfigField("String", "CATALOG_URL", "\"$catalogUrl\"")
     }
     signingConfigs {
