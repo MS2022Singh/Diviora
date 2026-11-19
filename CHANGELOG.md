@@ -3,6 +3,12 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-19
+### Added
+- Automatic update check: Android (daily and at start) shows an "Update available" banner and notification, then
+  downloads, verifies and opens the installer. Desktop shows a "Download update" banner. Releases publish `version.json`.
+- Online content refreshes every hour and at app start (was 6 h). "⟳ Refresh online content" in Library → Online.
+
 ## [0.5.0] - 2026-11-19
 ### Changed
 - Now Playing: one balanced row (⟲10 · ♥ · add to playlist · ⏰ · speed · sleep · 10⟳), stop moved to the top bar, queue position centred.

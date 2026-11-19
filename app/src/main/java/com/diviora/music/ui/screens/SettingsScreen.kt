@@ -126,6 +126,11 @@ fun SettingsScreen(nav: NavHostController) {
         if (Build.VERSION.SDK_INT >= 31) ListItem(headlineContent = { Text("Wallpaper colours (Material You)") },
             trailingContent = { Switch(settings.dynamicColor, { on -> scope.launch { c.settings.setDynamic(on) } }) })
 
+        Section("App updates")
+        ListItem(headlineContent = { Text("Installed version ${BuildConfig.VERSION_NAME}") },
+            supportingContent = { Text(if (c.updater.enabled) "DIVIORA checks for updates every day and when it starts." else "Updates are off in developer builds.") },
+            trailingContent = { if (c.updater.enabled) TextButton(onClick = { UiEvents.showUpdate(); scope.launch { c.updater.check() } }) { Text("Check now") } })
+
         Section("About")
         var taps by remember { mutableIntStateOf(0) }
         var askPass by remember { mutableStateOf(false) }

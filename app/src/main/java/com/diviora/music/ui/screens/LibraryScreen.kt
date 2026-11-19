@@ -108,7 +108,10 @@ fun LibraryScreen(nav: NavHostController) {
                 val l by remember { c.catalogs.observeItems() }.collectAsStateWithLifecycle(emptyList())
                 if (l.isEmpty()) EmptyState(Icons.Filled.Link, "No online content yet",
                     "Online content published by the DIVIORA developer appears here when you are connected to the internet.")
-                else MediaList(l, player.mediaId, header = true)
+                val scope = rememberCoroutineScope()
+                TextButton(onClick = { scope.launch { c.catalogs.syncAll(); UiEvents.message("Online content refreshed") } },
+                    modifier = Modifier.padding(horizontal = 8.dp)) { Text("⟳ Refresh online content") }
+                if (l.isNotEmpty()) MediaList(l, player.mediaId, header = true)
             }
             0 -> { val l by remember { dao.observeByKind(MediaKind.AUDIO) }.collectAsStateWithLifecycle(emptyList()); MediaList(l, player.mediaId, header = true) }
             1 -> { val l by remember { dao.observeByKind(MediaKind.VIDEO) }.collectAsStateWithLifecycle(emptyList()); MediaList(l, player.mediaId, header = true) }
