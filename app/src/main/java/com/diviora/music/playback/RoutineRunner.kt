@@ -61,7 +61,7 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
         }
         val online = isOnline(service)
         val playable = withContext(Dispatchers.IO) {
-            all.filter { m -> m.available && (if (m.uri.startsWith("http")) online else c.library.isReadable(m)) }
+            all.filter { m -> m.available && (m.offlinePath?.let { java.io.File(it).exists() } == true || (if (m.uri.startsWith("http")) online else c.library.isReadable(m))) }
         }
         if (playable.isEmpty()) {
             val why = when {

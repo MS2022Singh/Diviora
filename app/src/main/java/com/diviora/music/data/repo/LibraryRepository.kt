@@ -138,15 +138,16 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
         ImportResult(added, ids.size - added, failed, ids)
     }
 
-    private fun walk(tree: Uri, docId: String, out: MutableList<Uri>, depth: Int) {
-        if (depth > 12) return
+    /** Walks a picked folder with no depth or size limit (visited ids guard against provider loops). */
+    private fun walk(tree: Uri, docId: String, out: MutableList<Uri>, depth: Int, seen: HashSet<String> = HashSet()) {
+        if (!seen.add(docId)) return
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId)
         val cols = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE)
         resolver.query(children, cols, null, null, null)?.use { c ->
             while (c.moveToNext()) {
                 val id = c.getString(0); val mime = c.getString(1) ?: ""
                 when {
-                    mime == DocumentsContract.Document.MIME_TYPE_DIR -> walk(tree, id, out, depth + 1)
+                    mime == DocumentsContract.Document.MIME_TYPE_DIR -> walk(tree, id, out, depth + 1, seen)
                     mime.startsWith("audio/") || mime.startsWith("video/") ->
                         out += DocumentsContract.buildDocumentUriUsingTree(tree, id)
                 }

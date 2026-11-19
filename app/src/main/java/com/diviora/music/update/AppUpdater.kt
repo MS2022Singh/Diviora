@@ -38,7 +38,7 @@ class AppUpdater(private val context: Context) {
     val state: StateFlow<State> = _state.asStateFlow()
 
     /** Debug builds have their own package id, so a release APK would install as a second app: no updates there. */
-    val enabled: Boolean get() = !BuildConfig.DEBUG && BuildConfig.UPDATE_URL.isNotBlank()
+    val enabled: Boolean get() = BuildConfig.SELF_UPDATE && !BuildConfig.DEBUG && BuildConfig.UPDATE_URL.isNotBlank()
 
     suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
         if (!enabled) return@withContext null

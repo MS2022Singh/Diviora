@@ -57,8 +57,12 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
         db.withTransaction { db.media().deleteCatalog(url); db.catalogs().delete(url) }
     }
 
-    /** Refreshes every source. Failures are stored per source and never thrown. */
-    suspend fun syncAll(): List<CatalogSourceEntity> {
+    /** Refreshes every source, then removes offline copies the developer no longer allows. Failures never throw. */
+    suspend fun syncAll(): List<CatalogSourceEntity> = syncAllInternal().also {
+        runCatching { (context.applicationContext as com.diviora.music.DivioraApp).container.offline.enforcePolicy() }
+    }
+
+    private suspend fun syncAllInternal(): List<CatalogSourceEntity> {
         ensureBuiltIn()
         // Users never keep extra sources: outside developer mode only the built-in (developer's) catalog stays.
         if (!developerMode()) db.catalogs().all().filter { !it.builtIn || it.url != builtInUrl }.forEach { src ->
@@ -84,14 +88,16 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
                 val row = MediaEntity(
                     uri = key, kind = kind, source = MediaSource.CATALOG, title = item.title.take(200),
                     artist = item.artist?.take(120), album = item.album ?: catalog.name, durationMs = item.durationMs.coerceAtLeast(0),
-                    artworkUri = item.artwork, catalogUrl = url,
+                    artworkUri = item.artwork, catalogUrl = url, downloadAllowed = item.download ?: catalog.allowDownload,
                 )
                 val id = existing[key]
-                if (id == null) idByItem[item.id] = dao.insert(row).takeIf { it > 0 } ?: dao.idForUri(key) ?: continue
+                val mediaId = if (id == null) dao.insert(row).takeIf { it > 0 } ?: dao.idForUri(key) ?: continue
                 else {
                     dao.refreshMetadata(id, row.title, row.artist, row.album, row.durationMs, row.artworkUri, null, null)
-                    idByItem[item.id] = id
+                    id
                 }
+                dao.setDownloadAllowed(mediaId, row.downloadAllowed)
+                idByItem[item.id] = mediaId
             }
             val keep = catalog.items.mapTo(HashSet()) { itemUri(url, it) }
             existing.filterKeys { it !in keep }.values.toList().takeIf { it.isNotEmpty() }?.let { dao.markUnavailable(it) }
@@ -105,7 +111,7 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
                 playlists.replaceItems(pid, ids)
             }
         }
-        CatalogSourceEntity(url, catalog.name, builtIn, catalog.items.size, System.currentTimeMillis(), null)
+        CatalogSourceEntity(url, catalog.name, builtIn, catalog.items.size, System.currentTimeMillis(), null, catalog.allowDownload)
             .also { db.catalogs().upsert(it) }
     }
 
@@ -123,22 +129,9 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
         try {
             if (conn.responseCode !in 200..299) throw CatalogException("Server answered HTTP ${conn.responseCode}")
             conn.inputStream.use { input ->
-                val bytes = input.readNBytesCompat(CatalogParser.MAX_BYTES + 1)
-                if (bytes.size > CatalogParser.MAX_BYTES) throw CatalogException("Catalog is larger than 2 MB")
-                bytes.toString(Charsets.UTF_8)
+                input.readBytes().toString(Charsets.UTF_8)
             }
         } finally { conn.disconnect() }
-    }
-
-    private fun java.io.InputStream.readNBytesCompat(limit: Int): ByteArray {
-        val out = java.io.ByteArrayOutputStream()
-        val buf = ByteArray(16 * 1024)
-        while (out.size() < limit) {
-            val n = read(buf, 0, minOf(buf.size, limit - out.size()))
-            if (n < 0) break
-            out.write(buf, 0, n)
-        }
-        return out.toByteArray()
     }
 
     companion object {

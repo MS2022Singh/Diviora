@@ -40,8 +40,9 @@ class Player(initialVolume: Double) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     @Volatile var mediaPlayer: MediaPlayer? = null
         private set
-    /** Called whenever a new MediaPlayer is created, so a visible video view can attach to it. */
-    var onPlayerChanged: ((MediaPlayer?) -> Unit)? = null
+    /** Video views (main window and picture-in-picture window) re-attach when a new MediaPlayer is created. */
+    val playerListeners = java.util.concurrent.CopyOnWriteArrayList<(MediaPlayer?) -> Unit>()
+    private fun notifyPlayer(mp: MediaPlayer?) = playerListeners.forEach { it(mp) }
     private var gain = 1.0
     private var stopJob: Job? = null
     private var fadeJob: Job? = null
@@ -76,7 +77,7 @@ class Player(initialVolume: Double) {
     /** Stop playback and clear the queue (player bar close button). */
     fun close() {
         cancelRoutineTimers()
-        fx { mediaPlayer?.let { it.stop(); it.dispose() }; mediaPlayer = null; onPlayerChanged?.invoke(null) }
+        fx { mediaPlayer?.let { it.stop(); it.dispose() }; mediaPlayer = null; notifyPlayer(null) }
         _state.update { it.copy(queue = emptyList(), index = -1, playing = false, positionMs = 0, durationMs = 0, error = null) }
     }
 
@@ -144,7 +145,7 @@ class Player(initialVolume: Double) {
                 _state.update { it.copy(error = "${item.title}: $msg", playing = false) }
                 scope.launch { delay(800); next() }
             }
-            onPlayerChanged?.invoke(mp)
+            notifyPlayer(mp)
             if (autoplay) mp.play()
         }
     }

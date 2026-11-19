@@ -111,6 +111,7 @@ fun SettingsScreen(nav: NavHostController) {
             Text("Only for the app developer. Users of release builds never see this section.",
                 Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ContentSources()
+            DownloadControls()
             if (!BuildConfig.DEBUG) TextButton(onClick = { scope.launch { c.settings.setDeveloper(false); c.catalogs.syncAll(); UiEvents.message("Developer options locked") } },
                 modifier = Modifier.padding(horizontal = 8.dp)) { Text("Lock developer options") }
         }
@@ -128,7 +129,7 @@ fun SettingsScreen(nav: NavHostController) {
 
         Section("App updates")
         ListItem(headlineContent = { Text("Installed version ${BuildConfig.VERSION_NAME}") },
-            supportingContent = { Text(if (c.updater.enabled) "DIVIORA checks for updates every day and when it starts." else "Updates are off in developer builds.") },
+            supportingContent = { Text(when { c.updater.enabled -> "DIVIORA checks for updates every day and when it starts."; !BuildConfig.SELF_UPDATE -> "Updates are delivered by Google Play."; else -> "Updates are off in developer builds." }) },
             trailingContent = { if (c.updater.enabled) TextButton(onClick = { UiEvents.showUpdate(); scope.launch { c.updater.check() } }) { Text("Check now") } })
 
         Section("About")
@@ -232,4 +233,33 @@ private fun DeveloperUnlockDialog(onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/** Developer-only: who may save online items for offline playback. */
+@Composable
+private fun DownloadControls() {
+    val c = LocalContext.current.container
+    val scope = rememberCoroutineScope()
+    val settings by c.settings.settings.collectAsStateWithLifecycle(AppSettings())
+    val sources by remember { c.catalogs.observeSources() }.collectAsStateWithLifecycle(emptyList())
+    val builtIn = sources.firstOrNull { it.builtIn }
+    Text("Downloads", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 0.dp))
+    Text(
+        "For ALL users: set \"allowDownload\": true in catalog.json (publisher: --allow-download), or \"download\": true/false on single items. " +
+            "Turning it off later deletes saved copies on every device at its next sync. Built-in catalog now: " +
+            (if (builtIn?.allowDownload == true) "downloads ON" else "downloads OFF (streaming only)") + ".",
+        Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text("On this device (testing):", Modifier.padding(16.dp, 8.dp, 16.dp, 0.dp), style = MaterialTheme.typography.bodyMedium)
+    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        listOf(
+            com.diviora.music.data.repo.DownloadOverride.FOLLOW_CATALOG to "Follow catalog",
+            com.diviora.music.data.repo.DownloadOverride.ALWAYS_ALLOW to "Allow",
+            com.diviora.music.data.repo.DownloadOverride.NEVER_ALLOW to "Block",
+        ).forEach { (o, label) ->
+            FilterChip(settings.downloadOverride == o, {
+                scope.launch { c.settings.setDownloadOverride(o); c.offline.enforcePolicy(); UiEvents.message("Downloads on this device: $label") }
+            }, label = { Text(label) })
+        }
+    }
 }

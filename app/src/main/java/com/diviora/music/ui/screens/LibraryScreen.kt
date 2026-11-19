@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -88,7 +92,7 @@ fun LibraryScreen(nav: NavHostController) {
         Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = query, onValueChange = { query = it }, singleLine = true, modifier = Modifier.weight(1f),
-                placeholder = { Text("Search songs, artists, albums, videos") },
+                placeholder = { Text("Search music and videos", maxLines = 1) },
                 leadingIcon = { Icon(Icons.Filled.Search, null) },
                 trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Close, "Clear") } },
             )
@@ -154,7 +158,7 @@ fun MediaList(items: List<MediaEntity>, playingId: String?, header: Boolean = fa
     if (items.isEmpty()) { EmptyState(Icons.Filled.MusicNote, emptyTitle, "Use Import (+) or allow media access in Settings."); return }
     LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
         if (header) item {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton(onClick = { c.player.playItems(items) }) { Icon(Icons.Filled.PlayArrow, null); Text(" Play all") }
                 FilledTonalButton(onClick = { c.player.playItems(items.shuffled()) }) { Icon(Icons.Filled.Shuffle, null); Text(" Shuffle") }
                 FilledTonalButton(onClick = { UiEvents.scheduleItems(items.take(200).map { it.id }) }) { Icon(Icons.Filled.Alarm, null); Text(" Schedule") }
@@ -163,7 +167,8 @@ fun MediaList(items: List<MediaEntity>, playingId: String?, header: Boolean = fa
         items(items.size, key = { items[it].id }) { i ->
             val m = items[i]
             MediaRow(
-                m.title, listOfNotNull(m.artist, formatDuration(m.durationMs).takeIf { m.durationMs > 0 }).joinToString(" · ").ifEmpty { m.album },
+                m.title, listOfNotNull(m.artist, formatDuration(m.durationMs).takeIf { m.durationMs > 0 },
+                    when { m.offlinePath != null -> "⬇ Offline"; m.downloadId != null -> "Downloading…"; else -> null }).joinToString(" · ").ifEmpty { m.album },
                 m.artworkUri, m.kind, playing = playingId == m.id.toString(),
                 onClick = { c.player.playItems(items, i) },
                 trailing = { MediaItemMenu(m, playlistId) },
@@ -178,12 +183,24 @@ fun MediaItemMenu(m: MediaEntity, playlistId: Long? = null) {
     val scope = rememberCoroutineScope()
     var open by remember { mutableStateOf(false) }
     var pickPlaylist by remember { mutableStateOf(false) }
+    val settings by c.settings.settings.collectAsStateWithLifecycle(com.diviora.music.data.repo.AppSettings())
+    val downloadAllowed by androidx.compose.runtime.produceState(false, m, settings) { value = c.offline.isAllowed(m) }
     IconButton(onClick = { scope.launch { c.library.setFavorite(m.id, !m.favorite) } }) {
         Icon(if (m.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite",
             tint = if (m.favorite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
     IconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "More") }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        if (downloadAllowed || m.offlinePath != null || m.downloadId != null) DropdownMenuItem(
+            text = { Text(when { m.offlinePath != null -> "Remove download"; m.downloadId != null -> "Downloading… (tap to cancel)"; else -> "Download for offline" }) },
+            leadingIcon = { Icon(if (m.offlinePath != null) Icons.Filled.DownloadDone else Icons.Filled.Download, null) },
+            onClick = {
+                open = false
+                scope.launch {
+                    if (m.offlinePath != null || m.downloadId != null) { c.offline.remove(m); UiEvents.message("Download removed") }
+                    else if (c.offline.download(m)) UiEvents.message("Downloading “${m.title}”…") else UiEvents.message("Downloads are not allowed for this item")
+                }
+            })
         DropdownMenuItem(text = { Text("Schedule…") }, leadingIcon = { Icon(Icons.Filled.Alarm, null) },
             onClick = { open = false; UiEvents.scheduleItems(listOf(m.id)) })
         DropdownMenuItem(text = { Text("Play next") }, onClick = { open = false; c.player.addToQueue(listOf(m), next = true) })

@@ -17,11 +17,11 @@ jobs:
       - name: Android SDK platform
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
       - name: Unit tests, lint, debug build (Android + desktop)
-        run: ./gradlew --no-daemon check assembleDebug :desktop:test
+        run: ./gradlew --no-daemon check assembleGithubDebug :desktop:test
       - uses: actions/upload-artifact@v4
         with:
           name: diviora-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/github/debug/*.apk
   secrets-scan:
     runs-on: ubuntu-latest
     steps:

@@ -26,6 +26,12 @@ data class MediaEntity(
     val available: Boolean = true,
     /** For [MediaSource.CATALOG] items: the catalog source URL they came from. */
     val catalogUrl: String? = null,
+    /** Developer's catalog allows saving this item for offline playback. */
+    @androidx.room.ColumnInfo(defaultValue = "0") val downloadAllowed: Boolean = false,
+    /** Pending DownloadManager id while downloading. */
+    val downloadId: Long? = null,
+    /** Absolute path of the offline copy, if downloaded. */
+    val offlinePath: String? = null,
 )
 
 @Entity(tableName = "playlist")
@@ -128,4 +134,5 @@ data class CatalogSourceEntity(
     val itemCount: Int = 0,
     val lastSyncMs: Long? = null,
     val lastError: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val allowDownload: Boolean = false,
 )
