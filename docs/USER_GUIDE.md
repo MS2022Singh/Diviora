@@ -59,9 +59,12 @@ Open **Settings → Routine reliability check** and make every line green:
 
 On a computer, DIVIORA must be running (it stays in the tray when the window is closed) and the computer awake.
 
-## 5. Online content
-**Library → Online** and the Home screen show audio and video published by the DIVIORA developer. It updates by
-itself when you are online. Users cannot add or change sources.
+## 5. Online content and updates
+- **Library → Online** and the Home screen show audio and video published by the DIVIORA developer. New content appears
+  by itself (when the app starts and every hour while online). Tap **⟳ Refresh online content** to check now. Online
+  items stream only; there is no download.
+- **App updates:** DIVIORA checks for a new version every day. On Android tap the **Update available** banner →
+  **Download** → **Install**. On a computer click **Download update** and run the installer. Settings → **App updates** → **Check now**.
 
 ## 6. Playback errors
 | Message | Meaning / fix |

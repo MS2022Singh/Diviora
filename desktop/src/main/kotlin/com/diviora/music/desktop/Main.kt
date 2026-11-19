@@ -41,7 +41,13 @@ fun main(args: Array<String>) {
     val scheduler = Scheduler(store, player).also { it.start() }
     val services = AppServices(store, library, player, scheduler)
     CoroutineScope(Dispatchers.IO).launch {
-        while (true) { runCatching { library.syncAll() }; delay(6 * 60 * 60 * 1000L) } // developer content refresh
+        while (true) { runCatching { library.syncAll() }; delay(60 * 60 * 1000L) } // developer content refresh, hourly
+    }
+    CoroutineScope(Dispatchers.IO).launch {
+        while (true) {
+            Updater.check()?.let { info -> services.update = info; Notifier.show("DIVIORA Music ${info.versionName} is available", "Open DIVIORA to download the update") }
+            delay(6 * 60 * 60 * 1000L)
+        }
     }
     application {
         var visible by remember { mutableStateOf(true) }

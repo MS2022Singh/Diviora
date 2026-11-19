@@ -15,7 +15,7 @@ file for your device. No GitHub account is needed while the repository is public
    should show a green tick. Tap **Open** next to any red line and switch it on (see the phone-brand tips in the
    [user guide](USER_GUIDE.md#routines-did-not-play)).
 
-**Updating:** download the new APK the same way and tap **Install**. Your library, playlists and routines are kept.
+**Updating:** DIVIORA checks for new versions by itself. When one is out, Home shows **"Update available"** (and you get a notification) → tap it → **Download** → **Install**. The first time, Android asks you to allow DIVIORA to install apps: tap **Allow**, switch on **Allow from this source**, go back and tap **Install**. Your library, playlists and routines are kept. You can also check in **Settings → App updates → Check now**.
 **Uninstalling:** long-press the DIVIORA icon → **App info → Uninstall**.
 
 ## Windows 10 / 11
@@ -24,7 +24,7 @@ file for your device. No GitHub account is needed while the repository is public
    because the installer is not code-signed yet.
 3. Click **Next**, choose a folder if you want, then **Install → Finish**.
 4. Start **DIVIORA Music** from the Start menu.
-   **Update:** run the newer `.msi`. **Uninstall:** Settings → Apps → DIVIORA Music → Uninstall.
+   **Update:** when DIVIORA shows *"… is available"*, click **Download update** and run it. **Uninstall:** Settings → Apps → DIVIORA Music → Uninstall.
 
 ## macOS
 1. Click **DIVIORA-Music-macOS.dmg** and open it.

@@ -72,6 +72,7 @@ fun HomeScreen(nav: NavHostController) {
                 Text("$count items in your library", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        item { com.diviora.music.ui.UpdateBanner(onOpen = { com.diviora.music.ui.UiEvents.showUpdate() }) }
         item {
             Card(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable { nav.navigate("routines") },
