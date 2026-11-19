@@ -4,6 +4,8 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 ## [Unreleased]
 
 ## [0.6.0] - 2026-11-19
+### Changed
+- Installers are published to the public `MS2022Singh/Diviora-releases` repository (the code repository is private); apps check for updates there.
 ### Added
 - Automatic update check: Android (daily and at start) shows an "Update available" banner and notification, then
   downloads, verifies and opens the installer. Desktop shows a "Download update" banner. Releases publish `version.json`.
