@@ -21,8 +21,13 @@ jobs:
       - name: Android SDK platform
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
       - name: Build APK
+        env:
+          DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
+          DIVIORA_DEV_PASSPHRASE: ${{ secrets.DIVIORA_DEV_PASSPHRASE }}
         run: |
-          ./gradlew --no-daemon :app:assembleRelease -Pdiviora.catalogUrl="${{ vars.DIVIORA_CATALOG_URL }}" -Pdiviora.devPassphrase="${{ secrets.DIVIORA_DEV_PASSPHRASE }}"
+          if [ -n "$DIVIORA_DEV_PASSPHRASE" ]; then echo "Developer unlock: enabled"; else echo "::warning::DIVIORA_DEV_PASSPHRASE secret is not set; developer options cannot be unlocked in this build"; fi
+          if [ -n "$DIVIORA_CATALOG_URL" ]; then echo "Catalog: $DIVIORA_CATALOG_URL"; else echo "Catalog: bundled demo (DIVIORA_CATALOG_URL not set)"; fi
+          ./gradlew --no-daemon :app:assembleRelease
           mkdir -p out && cp app/build/outputs/apk/release/app-release.apk out/DIVIORA-Music-Android.apk
       - uses: actions/upload-artifact@v4
         with: { name: android, path: out/* }
@@ -44,7 +49,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests and installer
         shell: bash
-        run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true -Pdiviora.catalogUrl="${{ vars.DIVIORA_CATALOG_URL }}" :desktop:test :desktop:${{ matrix.task }}
+        env:
+          DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
+        run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true :desktop:test :desktop:${{ matrix.task }}
       - name: Collect
         shell: bash
         run: |

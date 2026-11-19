@@ -207,14 +207,21 @@ private fun DeveloperUnlockDialog(onDismiss: () -> Unit) {
             Column {
                 Text("Enter the developer passphrase.")
                 OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text("Passphrase") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(autoCorrectEnabled = false,
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
                     visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                val ok = BuildConfig.DEV_UNLOCK_HASH.isNotEmpty() && java.security.MessageDigest.getInstance("SHA-256")
-                    .digest("diviora-dev-v1:$pass".toByteArray()).joinToString("") { "%02x".format(it) } == BuildConfig.DEV_UNLOCK_HASH
-                if (ok) scope.launch { c.settings.setDeveloper(true); UiEvents.message("Developer options unlocked") } else UiEvents.message("Wrong passphrase")
+                when {
+                    BuildConfig.DEV_UNLOCK_HASH.isEmpty() -> UiEvents.message(
+                        "Developer unlock isn't set up in this build. Add the DIVIORA_DEV_PASSPHRASE secret on GitHub, rebuild, then install the new APK.")
+                    java.security.MessageDigest.getInstance("SHA-256").digest("diviora-dev-v1:${pass.trim()}".toByteArray())
+                        .joinToString("") { "%02x".format(it) } == BuildConfig.DEV_UNLOCK_HASH ->
+                        scope.launch { c.settings.setDeveloper(true); UiEvents.message("Developer options unlocked") }
+                    else -> UiEvents.message("Wrong passphrase (it is case-sensitive)")
+                }
                 onDismiss()
             }) { Text("Unlock") }
         },

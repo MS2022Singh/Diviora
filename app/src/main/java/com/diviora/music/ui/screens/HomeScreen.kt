@@ -1,6 +1,8 @@
 package com.diviora.music.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -92,9 +94,9 @@ fun HomeScreen(nav: NavHostController) {
             }
         }
         item {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = { showImport = true }, label = { Text("Import") }, leadingIcon = { Icon(Icons.Filled.UploadFile, null) })
-                AssistChip(onClick = { showImport = true }, label = { Text("Add stream") }, leadingIcon = { Icon(Icons.Filled.Link, null) })
+                AssistChip(onClick = { showImport = true }, label = { Text("Add link") }, leadingIcon = { Icon(Icons.Filled.Link, null) })
                 AssistChip(onClick = { nav.openRoutine() }, label = { Text("New routine") }, leadingIcon = { Icon(Icons.Filled.Alarm, null) })
             }
         }

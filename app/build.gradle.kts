@@ -9,7 +9,11 @@ plugins {
 }
 
 val appId = providers.gradleProperty("diviora.applicationId").get()
-val devPass = providers.gradleProperty("diviora.devPassphrase").orNull.orEmpty()
+// Read from -P or from the environment (CI passes secrets as env vars, so special characters stay intact).
+val devPass = (providers.gradleProperty("diviora.devPassphrase").orNull?.takeIf { it.isNotBlank() }
+    ?: providers.environmentVariable("DIVIORA_DEV_PASSPHRASE").orNull).orEmpty().trim()
+val catalogUrl = (providers.gradleProperty("diviora.catalogUrl").orNull?.takeIf { it.isNotBlank() }
+    ?: providers.environmentVariable("DIVIORA_CATALOG_URL").orNull).orEmpty().trim()
 val devHash = if (devPass.isBlank()) "" else MessageDigest.getInstance("SHA-256")
     .digest("diviora-dev-v1:$devPass".toByteArray()).joinToString("") { b -> "%02x".format(b) }
 
@@ -26,7 +30,7 @@ android {
         // Developer content server: the catalog every install loads (empty = bundled demo catalog). See docs/catalog.md.
         // Developer options unlock: SHA-256 of "diviora-dev-v1:" + passphrase (diviora.devPassphrase / CI secret). Empty = locked.
         buildConfigField("String", "DEV_UNLOCK_HASH", "\"$devHash\"")
-        buildConfigField("String", "CATALOG_URL", "\"${providers.gradleProperty("diviora.catalogUrl").getOrElse("")}\"")
+        buildConfigField("String", "CATALOG_URL", "\"$catalogUrl\"")
     }
     signingConfigs {
         // Stable, intentionally public key for APKs downloaded from GitHub Releases, so updates install over

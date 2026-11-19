@@ -3,6 +3,9 @@ package com.diviora.music.data.repo
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import com.diviora.music.core.catalog.*
 import android.content.Intent
 import android.media.MediaMetadataRetriever
@@ -178,10 +181,13 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
         require(clean.startsWith("http://") || clean.startsWith("https://")) { "Only http(s) URLs are supported" }
         // YouTube/Spotify/SoundCloud: play inside DIVIORA through the platform's official embedded player.
         PlatformLinks.embedFor(clean)?.let { e ->
-            return@withContext dao.idForUri(clean) ?: dao.insert(
+            dao.idForUri(clean)?.let { return@withContext it }
+            val info = fetchEmbedInfo(clean, e.platform)
+            return@withContext dao.insert(
                 MediaEntity(uri = clean, kind = if (e.isVideo) MediaKind.VIDEO else MediaKind.AUDIO, source = MediaSource.EMBED,
-                    title = title?.takeIf { it.isNotBlank() } ?: "${e.platform} ${e.kind}", artist = e.platform,
-                    artworkUri = if (e.platform == "YouTube") "https://i.ytimg.com/vi/${e.id}/hqdefault.jpg" else null),
+                    title = title?.takeIf { it.isNotBlank() } ?: info?.title ?: "${e.platform} ${e.kind}",
+                    artist = info?.author ?: e.platform, album = e.platform,
+                    artworkUri = info?.thumbnail ?: if (e.platform == "YouTube") "https://i.ytimg.com/vi/${e.id}/hqdefault.jpg" else null),
             )
         }
         // Other platforms (Gaana, Amazon Music, JioSaavn…) have no embeddable player: hand off to their app.
@@ -205,6 +211,38 @@ class LibraryRepository(private val context: Context, private val db: AppDatabas
     }
 
     suspend fun setFavorite(id: Long, favorite: Boolean) = dao.setFavorite(id, favorite)
+
+    data class EmbedInfo(val title: String, val author: String?, val thumbnail: String?)
+
+    /** Title, channel/artist and thumbnail from the platform's public oEmbed endpoint (no API key). Null on any failure. */
+    suspend fun fetchEmbedInfo(url: String, platform: String): EmbedInfo? = withContext(Dispatchers.IO) {
+        val enc = java.net.URLEncoder.encode(url, "UTF-8")
+        val endpoint = when (platform) {
+            "YouTube" -> "https://www.youtube.com/oembed?format=json&url=$enc"
+            "Spotify" -> "https://open.spotify.com/oembed?url=$enc"
+            "SoundCloud" -> "https://soundcloud.com/oembed?format=json&url=$enc"
+            else -> return@withContext null
+        }
+        runCatching {
+            val conn = (java.net.URL(endpoint).openConnection() as java.net.HttpURLConnection).apply { connectTimeout = 8000; readTimeout = 8000 }
+            try {
+                if (conn.responseCode != 200) return@runCatching null
+                val o = DivioraJson.parseToJsonElement(conn.inputStream.bufferedReader().use { it.readText().take(200_000) }).jsonObject
+                fun str(k: String) = o[k]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+                str("title")?.let { EmbedInfo(it.take(200), str("author_name")?.take(120), str("thumbnail_url")) }
+            } finally { conn.disconnect() }
+        }.getOrNull()
+    }
+
+    /** Fills in the real title for embed items saved with a placeholder name (e.g. "YouTube video"). */
+    suspend fun refreshEmbedTitle(m: MediaEntity) {
+        if (m.source != MediaSource.EMBED) return
+        val e = PlatformLinks.embedFor(m.uri) ?: return
+        if (m.title != "${e.platform} ${e.kind}" && m.artist != e.platform) return
+        val info = fetchEmbedInfo(m.uri, e.platform) ?: return
+        dao.refreshMetadata(m.id, if (m.title == "${e.platform} ${e.kind}") info.title else m.title, info.author ?: m.artist, e.platform,
+            m.durationMs, info.thumbnail ?: m.artworkUri, m.mimeType, m.sizeBytes)
+    }
 
     /** Remove an item from the library. Files stay on disk, except copies the app made itself. */
     suspend fun remove(id: Long) = withContext(Dispatchers.IO) {

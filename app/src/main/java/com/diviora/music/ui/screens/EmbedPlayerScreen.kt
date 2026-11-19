@@ -55,6 +55,7 @@ fun EmbedPlayerScreen(nav: NavHostController, mediaId: Long) {
     val media by remember(mediaId) { c.db.media().observe(mediaId) }.collectAsStateWithLifecycle(null)
     val m = media ?: return
     val embed = remember(m.uri) { PlatformLinks.embedFor(m.uri) }
+    androidx.compose.runtime.LaunchedEffect(m.id) { c.library.refreshEmbedTitle(m) }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
@@ -64,6 +65,7 @@ fun EmbedPlayerScreen(nav: NavHostController, mediaId: Long) {
         if (embed == null) { Text("This link can't be embedded."); return@Column }
         if (embed.platform == "YouTube") YouTubeEmbed(embed.id) else WebEmbed(embed.embedUrl, tall = embed.kind != "track")
         Text(m.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center)
+        m.artist?.takeIf { it != embed.platform }?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         Text(
             when (embed.platform) {
                 "YouTube" -> "Playing with YouTube's official player. YouTube allows on-screen playback only, so it stops when you leave this screen or lock the phone."

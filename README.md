@@ -23,14 +23,12 @@ The installers are rebuilt automatically every time the project is updated.
   favourites, playlists, video with picture-in-picture.
 - **AutoPlay Routines:** pick what plays and **your own times**. Repeat once, daily, on weekdays, on chosen days or monthly,
   with as many times per routine as you like, plus volume, fade-in, stop-after and history.
-- **Online content from the developer:** the developer publishes audio/video on a server, and every user sees it under
-  **Library → Online**. Only the developer can manage sources.
+- **Online content:** audio and video published by DIVIORA appear under **Library → Online** and on Home.
 
 ## Documentation
 | For | Document |
 |---|---|
 | Everyone | [Installation guide](docs/INSTALL.md) · [User guide and troubleshooting](docs/USER_GUIDE.md) |
-| The developer | [Developer guide: build, release, settings](docs/DEVELOPER_GUIDE.md) · [Publishing your own content](docs/catalog.md) |
 | Technical | [Architecture](docs/architecture.md) · [Scheduler behaviour](docs/scheduler.md) · [Testing](docs/testing.md) · [Restore/rollback](docs/restore-guide.md) · [Decisions (ADRs)](docs/adr) · [Progress log](docs/STATE.md) · [Changelog](CHANGELOG.md) |
 
 Licence: proprietary, all rights reserved (see `LICENSE`, `THIRD_PARTY_NOTICES.md`).
