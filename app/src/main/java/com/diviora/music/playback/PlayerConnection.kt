@@ -41,6 +41,8 @@ data class PlayerUiState(
     val currentIndex: Int = 0,
     val error: String? = null,
     val sleepTimerEndsAtMs: Long? = null,
+    val videoWidth: Int = 0,
+    val videoHeight: Int = 0,
 )
 
 /** UI-side connection to [PlaybackService] through a Media3 MediaController. */
@@ -156,7 +158,8 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
                 isVideo = item?.isVideo() == true,
                 queue = queue,
                 currentIndex = c.currentMediaItemIndex,
-                error = c.playerError?.let { e -> e.errorCodeName + (e.message?.let { m -> ": $m" } ?: "") },
+                error = c.playerError?.let { e -> friendlyError(e) },
+                videoWidth = c.videoSize.width, videoHeight = c.videoSize.height,
             )
         }
         if (c.isPlaying && ticker?.isActive != true) {
@@ -168,4 +171,18 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
             }
         }
     }
+}
+
+/** Short, plain-language playback errors (the technical code goes to logcat, not the screen). */
+fun friendlyError(e: androidx.media3.common.PlaybackException): String {
+    val n = e.errorCodeName
+    return when {
+        "BAD_HTTP_STATUS" in n || "FILE_NOT_FOUND" in n -> "This link isn't available (the server refused it)."
+        "NETWORK" in n || "TIMEOUT" in n -> "No internet connection."
+        "DECOD" in n || "FORMAT_UNSUPPORTED" in n -> "This device can't play this file's format."
+        "AUDIO_TRACK" in n -> "Audio output isn't available right now."
+        "PARSING" in n -> "This file looks damaged or isn't a media file."
+        "NO_PERMISSION" in n -> "DIVIORA no longer has access to this file."
+        else -> "Couldn't play this item."
+    }.also { android.util.Log.w("Playback", "$n: ${e.message}") }
 }

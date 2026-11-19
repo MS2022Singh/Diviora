@@ -28,6 +28,7 @@ class AppContainer(context: Context) {
     val settings = SettingsStore(context)
     val catalogs = CatalogRepository(context, db, settings)
     val updater = com.diviora.music.update.AppUpdater(context)
+    val offline = com.diviora.music.data.repo.OfflineRepository(context, db, settings)
     val player = PlayerConnection(context, appScope)
 }
 
@@ -44,7 +45,7 @@ class DivioraApp : Application() {
             WatchdogWorker.enqueue(this@DivioraApp)
             container.scheduler.rescheduleAll("app start")
             com.diviora.music.scheduler.CatalogSyncWorker.enqueue(this@DivioraApp)
-            com.diviora.music.update.UpdateWorker.enqueue(this@DivioraApp)
+            if (container.updater.enabled) com.diviora.music.update.UpdateWorker.enqueue(this@DivioraApp)
             container.catalogs.syncAll()
         }
     }

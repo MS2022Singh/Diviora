@@ -81,7 +81,7 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
     val context = LocalContext.current
     val c = context.container
     val player by c.player.state.collectAsStateWithLifecycle()
-    if (inPip) { VideoSurface(Modifier.fillMaxSize()); return }
+    if (inPip) { VideoSurface(Modifier.fillMaxSize(), showControls = false); return }
 
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }

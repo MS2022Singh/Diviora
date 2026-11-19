@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Forward10
@@ -94,6 +95,12 @@ fun NowPlayingScreen(nav: NavHostController) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.KeyboardArrowDown, "Close player") }
             Text("Now playing", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            if (s.isVideo) {
+                val activity = androidx.activity.compose.LocalActivity.current as? com.diviora.music.MainActivity
+                IconButton(onClick = { if (activity?.enterPip() != true) com.diviora.music.ui.UiEvents.message("Picture-in-picture is not available on this device") }) {
+                    Icon(Icons.Filled.PictureInPictureAlt, "Picture-in-picture")
+                }
+            }
             IconButton(onClick = { c.player.close(); nav.popBackStack() }) { Icon(Icons.Filled.StopCircle, "Stop and close player") }
             IconButton(onClick = { showQueue = true }) { Icon(Icons.AutoMirrored.Filled.QueueMusic, "Queue") }
         }
@@ -103,14 +110,16 @@ fun NowPlayingScreen(nav: NavHostController) {
             return@Column
         }
         if (s.isVideo) {
-            VideoSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black))
+            // DIVIORA's own controls are below; hide Media3's overlay so there is one set of controls.
+            VideoSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black), showControls = false)
         } else {
             Artwork(s.artworkUri, 300.dp, MediaKind.AUDIO, corner = 24.dp)
         }
         Spacer(Modifier.height(24.dp))
         Text(s.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
         s.artist?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
-        s.error?.let { Text("Playback error: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        s.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp)) }
         Spacer(Modifier.height(16.dp))
         val dur = s.durationMs.coerceAtLeast(1)
         Slider(
@@ -193,11 +202,11 @@ fun NowPlayingScreen(nav: NavHostController) {
 /** Renders video from the session player via the MediaController (works in-app and in picture-in-picture). */
 @OptIn(UnstableApi::class)
 @Composable
-fun VideoSurface(modifier: Modifier = Modifier) {
+fun VideoSurface(modifier: Modifier = Modifier, showControls: Boolean = true) {
     val c = LocalContext.current.container
     AndroidView(
-        factory = { ctx -> PlayerView(ctx).apply { useController = true; setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) } },
-        update = { it.player = c.player.controller },
+        factory = { ctx -> PlayerView(ctx).apply { setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) } },
+        update = { it.player = c.player.controller; it.useController = showControls },
         onRelease = { it.player = null },
         modifier = modifier,
     )

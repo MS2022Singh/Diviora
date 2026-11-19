@@ -26,8 +26,12 @@ On desktop the same sections are in the left bar, and the player is at the botto
 ## 3. Playing
 Tap any item to play it. The **mini player** at the bottom has play/pause, next and **✕** (stop and close). Tap it for **Now playing**:
 seek bar, previous/next, shuffle, repeat, **⟲10 / 10⟳**, ♥ favourite, add to playlist, ⏰ schedule, speed, 🌙 sleep timer,
-⏹ stop, and ☰ queue (tap to jump, ✕ to remove). Videos play at the top. Leaving the app while a video plays switches to
-picture-in-picture.
+⏹ stop, and ☰ queue (tap to jump, ✕ to remove). Videos play at the top.
+
+**Picture-in-picture (video):** tap the **PiP** button at the top of Now playing, or press Home or switch apps while a video
+plays. The video keeps playing in a small window you can drag anywhere, with ⏮ ⏯ ⏭ buttons. Tap it to make it bigger,
+or tap ⤢ to return to DIVIORA. On a computer, click **Picture-in-picture** under the video (or in the player bar) for a small
+always-on-top window. Close it to bring the video back.
 
 ## 4. AutoPlay Routines (you choose what plays and when)
 1. Press **⏰** next to any song or video, in **Now playing**, on the **Schedule** button above a list, or use
@@ -61,8 +65,10 @@ On a computer, DIVIORA must be running (it stays in the tray when the window is 
 
 ## 5. Online content and updates
 - **Library → Online** and the Home screen show audio and video published by the DIVIORA developer. New content appears
-  by itself (when the app starts and every hour while online). Tap **⟳ Refresh online content** to check now. Online
-  items stream only; there is no download.
+  by itself (when the app starts and every hour while online). Tap **⟳ Refresh online content** to check now.
+- **Offline downloads:** if the developer allows it, an online item's **⋮** menu has **Download for offline**. Saved
+  items show "⬇ Offline", play without internet and can be removed with **⋮ → Remove download**. If the developer turns
+  downloads off, saved copies are removed automatically.
 - **App updates:** DIVIORA checks for a new version every day. On Android tap the **Update available** banner →
   **Download** → **Install**. On a computer click **Download update** and run the installer. Settings → **App updates** → **Check now**.
 

@@ -56,12 +56,29 @@ android {
             }
         }
     }
+    // Two distributions: "github" (Releases page, self-updating) and "play" (Google Play: no self-update, AAB upload).
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+            // Private key if present, else the public sideload key (so GitHub APKs update over each other).
+            signingConfig = signingConfigs.getByName(if (rootProject.file("release.jks").exists()) "release" else "sideload")
+        }
+        create("play") {
+            dimension = "distribution"
+            // Only your PRIVATE upload key; without release.jks the Play bundle is left unsigned (Play rejects it).
+            if (rootProject.file("release.jks").exists()) signingConfig = signingConfigs.getByName("release")
+            // Google Play forbids apps that update themselves; Play updates the app instead.
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName(if (rootProject.file("release.jks").exists()) "release" else "sideload")
+            // Signing is chosen per distribution flavor below.
         }
         debug { applicationIdSuffix = ".debug"; signingConfig = signingConfigs.getByName("sideload") }
     }
@@ -123,3 +140,4 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
+

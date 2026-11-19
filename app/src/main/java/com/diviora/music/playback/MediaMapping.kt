@@ -11,7 +11,9 @@ const val EXTRA_KIND = "diviora.kind"
 
 /** Converts a library row to a Media3 item. The URI also goes in requestMetadata so it survives the controller IPC hop. */
 fun MediaEntity.toMediaItem(): MediaItem {
-    val uri = Uri.parse(uri)
+    // Offline copy (developer-allowed download) plays without network.
+    val offline = offlinePath?.let { java.io.File(it) }?.takeIf { it.exists() }
+    val uri = offline?.let(Uri::fromFile) ?: Uri.parse(uri)
     val extras = android.os.Bundle().apply { putString(EXTRA_KIND, kind.name) }
     val meta = MediaMetadata.Builder()
         .setTitle(title)
@@ -29,7 +31,7 @@ fun MediaEntity.toMediaItem(): MediaItem {
         .setMediaMetadata(meta)
         .setRequestMetadata(MediaItem.RequestMetadata.Builder().setMediaUri(uri).setExtras(extras).build())
     // Help the extractor for adaptive streams that have no file extension.
-    if (kind == MediaKind.STREAM) {
+    if (kind == MediaKind.STREAM && offline == null) {
         val u = this.uri.lowercase()
         when {
             ".m3u8" in u -> b.setMimeType(MimeTypes.APPLICATION_M3U8)

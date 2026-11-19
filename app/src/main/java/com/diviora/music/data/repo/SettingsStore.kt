@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.map
 
 enum class ThemeMode { SYSTEM, DARK, LIGHT }
 
-data class AppSettings(val theme: ThemeMode = ThemeMode.DARK, val dynamicColor: Boolean = false, val onboarded: Boolean = false, val developerUnlocked: Boolean = false)
+data class AppSettings(val theme: ThemeMode = ThemeMode.DARK, val dynamicColor: Boolean = false, val onboarded: Boolean = false, val developerUnlocked: Boolean = false,
+    val downloadOverride: DownloadOverride = DownloadOverride.FOLLOW_CATALOG)
 
 private val Context.dataStore by preferencesDataStore("settings")
 
@@ -19,6 +20,7 @@ class SettingsStore(private val context: Context) {
     private val dynamicKey = booleanPreferencesKey("dynamic")
     private val onboardedKey = booleanPreferencesKey("onboarded")
     private val devKey = booleanPreferencesKey("developer")
+    private val dlKey = stringPreferencesKey("downloadOverride")
 
     val settings: Flow<AppSettings> = context.dataStore.data.map {
         AppSettings(
@@ -26,6 +28,7 @@ class SettingsStore(private val context: Context) {
             dynamicColor = it[dynamicKey] ?: false,
             onboarded = it[onboardedKey] ?: false,
             developerUnlocked = it[devKey] ?: false,
+            downloadOverride = it[dlKey]?.let { v -> runCatching { DownloadOverride.valueOf(v) }.getOrNull() } ?: DownloadOverride.FOLLOW_CATALOG,
         )
     }
 
@@ -33,4 +36,5 @@ class SettingsStore(private val context: Context) {
     suspend fun setDynamic(on: Boolean) = context.dataStore.edit { it[dynamicKey] = on }
     suspend fun setOnboarded() = context.dataStore.edit { it[onboardedKey] = true }
     suspend fun setDeveloper(on: Boolean) = context.dataStore.edit { it[devKey] = on }
+    suspend fun setDownloadOverride(o: DownloadOverride) = context.dataStore.edit { it[dlKey] = o.name }
 }
