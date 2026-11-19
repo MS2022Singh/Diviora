@@ -35,11 +35,60 @@ class MainActivity : ComponentActivity() {
         container.player.connect()
         setContent {
             val settings by container.settings.settings.collectAsStateWithLifecycle(AppSettings())
+            // Status/navigation bar icons must contrast with the app theme (not the system theme).
+            val dark = when (settings.theme) {
+                com.diviora.music.data.repo.ThemeMode.DARK -> true
+                com.diviora.music.data.repo.ThemeMode.LIGHT -> false
+                com.diviora.music.data.repo.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            androidx.compose.runtime.DisposableEffect(dark) {
+                val t = android.graphics.Color.TRANSPARENT
+                val style = if (dark) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose {}
+            }
             DivioraTheme(settings.theme, settings.dynamicColor) {
                 DivioraRoot(inPip = inPip, openRoute = openRoute, onRouteConsumed = { openRoute = null })
             }
         }
         if (savedInstanceState == null) handleIntent(intent)
+        // Keep picture-in-picture settings in sync with what is playing (auto-enter on Android 12+).
+        lifecycleScope.launch { container.player.state.collect { updatePipParams(it) } }
+    }
+
+    private fun pipParams(s: com.diviora.music.playback.PlayerUiState): PictureInPictureParams {
+        val ratio = if (s.videoWidth > 0 && s.videoHeight > 0) {
+            val r = s.videoWidth.toFloat() / s.videoHeight
+            when { r > 2.39f -> Rational(239, 100); r < 1 / 2.39f -> Rational(100, 239); else -> Rational(s.videoWidth, s.videoHeight) }
+        } else Rational(16, 9)
+        val b = PictureInPictureParams.Builder().setAspectRatio(ratio).setActions(pipActions(s.isPlaying))
+        if (Build.VERSION.SDK_INT >= 31) b.setAutoEnterEnabled(s.isVideo && s.isPlaying).setSeamlessResizeEnabled(true)
+        return b.build()
+    }
+
+    private fun pipActions(playing: Boolean): List<android.app.RemoteAction> {
+        fun action(icon: Int, title: String, cmd: String, req: Int) = android.app.RemoteAction(
+            android.graphics.drawable.Icon.createWithResource(this, icon), title, title,
+            android.app.PendingIntent.getBroadcast(this, req, Intent(this, PipActionReceiver::class.java).setAction(cmd),
+                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT),
+        )
+        return listOf(
+            action(android.R.drawable.ic_media_previous, "Previous", PipActionReceiver.PREV, 31),
+            if (playing) action(android.R.drawable.ic_media_pause, "Pause", PipActionReceiver.TOGGLE, 32)
+            else action(android.R.drawable.ic_media_play, "Play", PipActionReceiver.TOGGLE, 32),
+            action(android.R.drawable.ic_media_next, "Next", PipActionReceiver.NEXT, 33),
+        )
+    }
+
+    private fun updatePipParams(s: com.diviora.music.playback.PlayerUiState) {
+        if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        runCatching { setPictureInPictureParams(pipParams(s)) }
+    }
+
+    /** Enter picture-in-picture now (the PiP button in Now Playing). */
+    fun enterPip(): Boolean {
+        if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return false
+        return runCatching { enterPictureInPictureMode(pipParams(container.player.state.value)) }.getOrDefault(false)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -103,9 +152,8 @@ class MainActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         val s = container.player.state.value
-        if (s.isVideo && s.isPlaying && Build.VERSION.SDK_INT >= 26) {
-            runCatching { enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build()) }
-        }
+        // Android 8–11: enter PiP when leaving the app during video (12+ uses auto-enter).
+        if (s.isVideo && s.isPlaying && Build.VERSION.SDK_INT < 31) enterPip()
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -116,5 +164,18 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN = "open"
         const val EXTRA_RUN_SLOT = "runSlot"
+    }
+}
+
+/** Buttons inside the picture-in-picture window. */
+class PipActionReceiver : android.content.BroadcastReceiver() {
+    override fun onReceive(context: android.content.Context, intent: Intent) {
+        val p = context.container.player
+        when (intent.action) { TOGGLE -> p.togglePlay(); NEXT -> p.next(); PREV -> p.previous() }
+    }
+    companion object {
+        const val TOGGLE = "com.diviora.music.pip.TOGGLE"
+        const val NEXT = "com.diviora.music.pip.NEXT"
+        const val PREV = "com.diviora.music.pip.PREV"
     }
 }

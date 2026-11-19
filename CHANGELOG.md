@@ -3,6 +3,18 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-19
+### Added
+- Picture-in-picture for videos (Android): PiP button, automatic PiP when leaving the app (Android 12+), ⏮ ⏯ ⏭ in the PiP
+  window, video aspect ratio. Desktop: always-on-top PiP window.
+- Developer-controlled offline downloads: catalog `allowDownload` / per-item `download`. ⋮ → Download for offline;
+  copies are removed when the developer turns downloads off. Developer options → Downloads (Follow catalog / Allow / Block for testing).
+- Google Play build: `play` flavor (no self-updater) and the "Google Play bundle" workflow (signed AAB, optional upload).
+### Changed
+- No limits on catalog size, item count or folder depth.
+- Status and navigation bars follow the app theme. Playback errors are shown as short plain messages.
+- Library action buttons scroll instead of wrapping. Shorter search hint. Video shows one set of controls.
+
 ## [0.6.1] - 2026-11-19
 ### Fixed
 - 0.6.0 looked for updates and linked to a releases repository that does not exist. Apps now check the repository

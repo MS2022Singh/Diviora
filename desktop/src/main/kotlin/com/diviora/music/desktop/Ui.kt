@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -111,6 +112,8 @@ import javax.swing.JFileChooser
 class AppServices(val store: Store, val library: Library, val player: Player, val scheduler: Scheduler) {
     var message by mutableStateOf<String?>(null)
     var update by mutableStateOf<com.diviora.music.core.catalog.UpdateInfo?>(null)
+    /** Picture-in-picture: a small always-on-top video window. */
+    var pip by mutableStateOf(false)
 }
 
 private val Violet = Color(0xFF8B5CF6)
@@ -195,7 +198,15 @@ private fun HomeView(s: AppServices, onEdit: (DRoutine) -> Unit) {
         Text("DIVIORA Music", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("${data.media.count { it.available }} items · ${data.routines.size} routines", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
-        if (ps.current?.kind == MediaKind.VIDEO) { VideoView(s); Spacer(Modifier.height(12.dp)) }
+        if (ps.current?.kind == MediaKind.VIDEO) {
+            if (!s.pip) VideoView(s, Modifier.fillMaxWidth().height(360.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { s.pip = !s.pip }) {
+                    Icon(Icons.Filled.PictureInPictureAlt, null); Text(if (s.pip) "  Back to main window" else "  Picture-in-picture")
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text("Next AutoPlay routines", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -584,23 +595,29 @@ private fun PlayerBar(s: AppServices) {
                 Spacer(Modifier.width(12.dp))
                 Icon(Icons.AutoMirrored.Filled.VolumeUp, null)
                 Slider(ps.volume.toFloat(), { v -> s.player.setVolume(v.toDouble()); s.store.update { it.copy(settings = it.settings.copy(volume = v.toDouble())) } }, Modifier.width(120.dp))
-                IconButton(onClick = s.player::close) { Icon(Icons.Filled.Close, "Close player") }
+                if (cur.kind == MediaKind.VIDEO) IconButton(onClick = { s.pip = !s.pip }) { Icon(Icons.Filled.PictureInPictureAlt, "Picture-in-picture") }
+                IconButton(onClick = { s.player.close(); s.pip = false }) { Icon(Icons.Filled.Close, "Close player") }
             }
         }
     }
 }
 
-/** Video area: a JavaFX MediaView inside Swing, inside Compose. */
+/** Video area: a JavaFX MediaView inside Swing, inside Compose. Scales to the panel size. */
 @Composable
-private fun VideoView(s: AppServices) {
+fun VideoView(s: AppServices, modifier: Modifier = Modifier.fillMaxWidth().height(360.dp)) {
+    val listener = remember { arrayOfNulls<(javafx.scene.media.MediaPlayer?) -> Unit>(1) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { listener[0]?.let { s.player.playerListeners.remove(it) } } }
     SwingPanel(
-        modifier = Modifier.fillMaxWidth().height(360.dp).background(Color.Black),
+        modifier = modifier.background(Color.Black),
         factory = {
             JFXPanel().also { panel ->
                 Player.fx {
-                    val view = MediaView(s.player.mediaPlayer).apply { isPreserveRatio = true; fitHeight = 360.0 }
-                    panel.scene = Scene(Group(view), javafx.scene.paint.Color.BLACK)
-                    s.player.onPlayerChanged = { mp -> Player.fx { view.mediaPlayer = mp } }
+                    val view = MediaView(s.player.mediaPlayer).apply { isPreserveRatio = true }
+                    val root = javafx.scene.layout.StackPane(view).apply { style = "-fx-background-color: black;" }
+                    view.fitWidthProperty().bind(root.widthProperty()); view.fitHeightProperty().bind(root.heightProperty())
+                    panel.scene = Scene(root, javafx.scene.paint.Color.BLACK)
+                    val l: (javafx.scene.media.MediaPlayer?) -> Unit = { mp -> Player.fx { view.mediaPlayer = mp } }
+                    listener[0] = l; s.player.playerListeners.add(l)
                 }
             }
         },

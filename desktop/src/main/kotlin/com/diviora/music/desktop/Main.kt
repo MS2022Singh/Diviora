@@ -1,6 +1,8 @@
 package com.diviora.music.desktop
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +68,14 @@ fun main(args: Array<String>) {
             visible = visible, title = "DIVIORA Music", icon = DivioraIcon, state = windowState,
         ) {
             MaterialTheme(colorScheme = DivioraColors) { DivioraDesktopApp(services) { window } }
+        }
+        // Picture-in-picture: small, always on top, can be moved anywhere; closing it returns video to the main window.
+        val playerState by player.state.collectAsState()
+        if (services.pip && playerState.current?.kind == com.diviora.music.core.model.MediaKind.VIDEO) {
+            Window(
+                onCloseRequest = { services.pip = false }, title = "DIVIORA video", icon = DivioraIcon, alwaysOnTop = true,
+                state = rememberWindowState(width = 480.dp, height = 300.dp, position = androidx.compose.ui.window.WindowPosition(androidx.compose.ui.Alignment.BottomEnd)),
+            ) { MaterialTheme(colorScheme = DivioraColors) { VideoView(services, androidx.compose.ui.Modifier.fillMaxSize()) } }
         }
     }
 }

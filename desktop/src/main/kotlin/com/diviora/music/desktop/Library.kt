@@ -23,7 +23,7 @@ class Library(private val store: Store) {
     fun addFiles(files: List<File>): Int {
         var added = 0
         for (f in files) {
-            if (f.isDirectory) { added += addFiles(f.walkTopDown().maxDepth(12).filter { it.isFile }.toList()); continue }
+            if (f.isDirectory) { added += addFiles(f.walkTopDown().filter { it.isFile }.toList()); continue }
             val kind = kindOf(f.name) ?: if (f.extension.lowercase() in PLAYLIST_EXT) { added += importPlaylistText(f.readText()); null } else null
             kind ?: continue
             val uri = f.toURI().toString()
@@ -120,7 +120,6 @@ class Library(private val store: Store) {
             HttpResponse.BodyHandlers.ofByteArray(),
         )
         if (res.statusCode() !in 200..299) throw CatalogException("Server answered HTTP ${res.statusCode()}")
-        if (res.body().size > CatalogParser.MAX_BYTES) throw CatalogException("Catalog is larger than 2 MB")
         res.body().toString(Charsets.UTF_8)
     }
 

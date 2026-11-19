@@ -80,6 +80,21 @@ interface MediaDao {
     @Query("SELECT uri, id FROM media WHERE catalogUrl = :catalogUrl")
     suspend fun catalogUris(catalogUrl: String): List<UriId>
 
+    @Query("UPDATE media SET downloadAllowed = :allowed WHERE id = :id")
+    suspend fun setDownloadAllowed(id: Long, allowed: Boolean)
+
+    @Query("UPDATE media SET downloadId = :downloadId, offlinePath = :path WHERE id = :id")
+    suspend fun setOffline(id: Long, downloadId: Long?, path: String?)
+
+    @Query("SELECT * FROM media WHERE downloadId = :downloadId")
+    suspend fun byDownloadId(downloadId: Long): MediaEntity?
+
+    @Query("SELECT * FROM media WHERE offlinePath IS NOT NULL OR downloadId IS NOT NULL")
+    suspend fun withOffline(): List<MediaEntity>
+
+    @Query("SELECT * FROM media WHERE catalogUrl = :catalogUrl AND (offlinePath IS NOT NULL OR downloadId IS NOT NULL)")
+    suspend fun offlineInCatalog(catalogUrl: String): List<MediaEntity>
+
     @Query("DELETE FROM media WHERE catalogUrl = :catalogUrl")
     suspend fun deleteCatalog(catalogUrl: String)
 

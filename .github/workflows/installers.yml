@@ -38,8 +38,8 @@ jobs:
         run: |
           if [ -n "$DIVIORA_DEV_PASSPHRASE" ]; then echo "Developer unlock: enabled"; else echo "::warning::DIVIORA_DEV_PASSPHRASE secret is not set; developer options cannot be unlocked in this build"; fi
           if [ -n "$DIVIORA_CATALOG_URL" ]; then echo "Catalog: $DIVIORA_CATALOG_URL"; else echo "Catalog: bundled demo (DIVIORA_CATALOG_URL not set)"; fi
-          ./gradlew --no-daemon :app:assembleRelease
-          mkdir -p out && cp app/build/outputs/apk/release/app-release.apk out/DIVIORA-Music-Android.apk
+          ./gradlew --no-daemon :app:assembleGithubRelease
+          mkdir -p out && cp app/build/outputs/apk/github/release/app-github-release.apk out/DIVIORA-Music-Android.apk
       - uses: actions/upload-artifact@v4
         with: { name: android, path: out/* }
   desktop:
