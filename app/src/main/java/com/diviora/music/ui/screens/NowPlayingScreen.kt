@@ -94,6 +94,7 @@ fun NowPlayingScreen(nav: NavHostController) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.KeyboardArrowDown, "Close player") }
             Text("Now playing", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            IconButton(onClick = { c.player.close(); nav.popBackStack() }) { Icon(Icons.Filled.StopCircle, "Stop and close player") }
             IconButton(onClick = { showQueue = true }) { Icon(Icons.AutoMirrored.Filled.QueueMusic, "Queue") }
         }
         Spacer(Modifier.height(12.dp))
@@ -118,11 +119,11 @@ fun NowPlayingScreen(nav: NavHostController) {
             onValueChangeFinished = { c.player.seekTo((dragPos * dur).toLong()); dragging = false },
             enabled = s.durationMs > 0,
         )
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatDuration(s.positionMs), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            if (s.queue.size > 1) Text("${s.currentIndex + 1} of ${s.queue.size}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Box(Modifier.fillMaxWidth()) {
+            Text(formatDuration(s.positionMs), style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterStart))
+            if (s.queue.size > 1) Text("${s.currentIndex + 1} of ${s.queue.size}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.Center))
             Text(when { s.durationMs > 0 -> formatDuration(s.durationMs); current?.kind == MediaKind.STREAM && s.error == null -> "LIVE"; else -> "--:--" },
-                style = MaterialTheme.typography.labelSmall)
+                style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterEnd))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = c.player::toggleShuffle) {
@@ -138,18 +139,22 @@ fun NowPlayingScreen(nav: NavHostController) {
                     tint = if (s.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { c.player.seekBy(-10_000) }, enabled = s.durationMs > 0) { Icon(Icons.Filled.Replay10, "Back 10 seconds") }
-            IconButton(onClick = { current?.let { m -> scope.launch { c.library.setFavorite(m.id, !m.favorite) } } }) {
+        // One balanced row of secondary controls: back 10 s · favourite · add to playlist · schedule · speed · sleep · forward 10 s
+        val small = Modifier.size(44.dp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { c.player.seekBy(-10_000) }, enabled = s.durationMs > 0, modifier = small) { Icon(Icons.Filled.Replay10, "Back 10 seconds") }
+            IconButton(onClick = { current?.let { m -> scope.launch { c.library.setFavorite(m.id, !m.favorite) } } }, modifier = small) {
                 Icon(if (current?.favorite == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite",
                     tint = if (current?.favorite == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = { addToPlaylist = true }) { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Add to playlist") }
-            IconButton(onClick = { s.mediaId?.toLongOrNull()?.let { com.diviora.music.ui.UiEvents.scheduleItems(listOf(it)) } }) {
+            IconButton(onClick = { addToPlaylist = true }, modifier = small) { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Add to playlist") }
+            IconButton(onClick = { s.mediaId?.toLongOrNull()?.let { com.diviora.music.ui.UiEvents.scheduleItems(listOf(it)) } }, modifier = small) {
                 Icon(Icons.Filled.Alarm, "Schedule this")
             }
             Box {
-                IconButton(onClick = { speedMenu = true }) { Icon(Icons.Filled.Speed, "Playback speed") }
+                IconButton(onClick = { speedMenu = true }, modifier = small) {
+                    Icon(Icons.Filled.Speed, "Playback speed", tint = if (s.speed != 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 DropdownMenu(speedMenu, { speedMenu = false }) {
                     listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f).forEach { sp ->
                         DropdownMenuItem(text = { Text("${sp}x" + if (sp == s.speed) "  ✓" else "") }, onClick = { c.player.setSpeed(sp); speedMenu = false })
@@ -157,7 +162,7 @@ fun NowPlayingScreen(nav: NavHostController) {
                 }
             }
             Box {
-                IconButton(onClick = { sleepMenu = true }) {
+                IconButton(onClick = { sleepMenu = true }, modifier = small) {
                     Icon(Icons.Filled.Bedtime, "Sleep timer", tint = if (s.sleepTimerEndsAtMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 DropdownMenu(sleepMenu, { sleepMenu = false }) {
@@ -167,12 +172,9 @@ fun NowPlayingScreen(nav: NavHostController) {
                     if (s.sleepTimerEndsAtMs != null) DropdownMenuItem(text = { Text("Turn off timer") }, onClick = { c.player.setSleepTimer(null); sleepMenu = false })
                 }
             }
+            IconButton(onClick = { c.player.seekBy(10_000) }, enabled = s.durationMs > 0, modifier = small) { Icon(Icons.Filled.Forward10, "Forward 10 seconds") }
         }
-        Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = { c.player.seekBy(10_000) }, enabled = s.durationMs > 0) { Icon(Icons.Filled.Forward10, "Forward 10 seconds") }
-            IconButton(onClick = { c.player.close(); nav.popBackStack() }) { Icon(Icons.Filled.StopCircle, "Stop and close") }
-        }
+        if (s.speed != 1f) Text("Speed ${s.speed}x", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         s.sleepTimerEndsAtMs?.let { Text("Sleep timer ends at ${formatWhen(it).substringAfter(", ")}", style = MaterialTheme.typography.labelMedium) }
     }
 

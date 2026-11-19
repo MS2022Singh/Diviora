@@ -3,15 +3,23 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-19
+### Changed
+- Now Playing: one balanced row (⟲10 · ♥ · add to playlist · ⏰ · speed · sleep · 10⟳), stop moved to the top bar, queue position centred.
+- Home quick buttons: "Add link" (was "Add stream"), and the row scrolls on narrow screens.
+- YouTube/Spotify/SoundCloud items get their real title, channel and thumbnail (also fixes items saved as "YouTube video").
+### Fixed
+- Developer unlock: a clear message when the build has no passphrase. Spaces are trimmed and autocorrect is off. The build passes secrets safely.
+- Developer documentation moved out of the public repository.
+
 ## [0.4.0] - 2026-11-18
 ### Added
 - YouTube, Spotify and SoundCloud links play inside DIVIORA with the official embedded players (on screen only). Routines
   with them show a tap-to-play notification. Other platform links still open their app.
 - "Add & play": adding a link plays it immediately in the player.
 - Mini player ✕ close. Now Playing: ±10 s, favourite, add to playlist, stop, "n of N" queue position.
-- Developer-only content sources: hidden in release builds (debug builds, or passphrase unlock via `DIVIORA_DEV_PASSPHRASE`;
-  desktop `DIVIORA_DEVELOPER=1`). Built-in catalog URL from the `DIVIORA_CATALOG_URL` repository variable.
-- Docs: README landing page, INSTALL, USER_GUIDE (incl. phone-brand battery fixes), DEVELOPER_GUIDE.
+- Content sources are developer-only and hidden in release builds.
+- Docs: README landing page, INSTALL, USER_GUIDE (incl. phone-brand battery fixes).
 ### Fixed
 - Broken demo links (Big Buck Bunny/Sintel/HLS) replaced with verified ones.
 - A broken item no longer stops the queue (auto-skip). Routines are reported PLAYED only after audio actually starts.
@@ -27,13 +35,13 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
   straight to choosing your own time.
 - `Build installers` GitHub workflow: builds every installer on each push to main and publishes them at Releases → latest.
 - Stable sideload signing key so APK updates install over earlier versions. Shared `:core:catalog` module.
-- docs/INSTALL.md (non-technical install guide), step-by-step content publishing in docs/catalog.md, `content-server/` template.
+- docs/INSTALL.md (non-technical install guide).
 
 ## [0.2.0-catalog] - 2026-11-18
 ### Added
 - Developer content server: catalog JSON (v1) over HTTPS, built in via `diviora.catalogUrl`. Synced at start-up and
   every 6 h; items and playlists appear in Library → Online and on Home, and can be scheduled in routines.
-- Settings → Content sources: add, refresh and remove extra sources. Bundled demo catalog. `scripts/validate-catalog.py`.
+- Content sources management and a bundled demo catalog.
 - YouTube/Spotify/Amazon Music/Gaana/JioSaavn/Apple Music/SoundCloud… links are detected and handed off to their own
   app instead of failing as broken streams.
 - Remote artwork loading (Coil network). Cleartext http allowed for user-added radio streams.
