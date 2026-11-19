@@ -31,6 +31,6 @@ data class UpdateInfo(
         private val json = Json { ignoreUnknownKeys = true }
         fun parse(text: String): UpdateInfo? = runCatching { json.decodeFromString(serializer(), text) }.getOrNull()
             ?.takeIf { it.versionCode > 0 && it.versionName.isNotBlank() }
-        const val DEFAULT_URL = "https://github.com/MS2022Singh/Diviora-releases/releases/latest/download/version.json"
+        const val DEFAULT_URL = "https://github.com/MS2022Singh/Diviora/releases/latest/download/version.json"
     }
 }
