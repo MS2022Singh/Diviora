@@ -1,6 +1,6 @@
 # Installing DIVIORA Music
 
-Everything is on one page: **https://github.com/MS2022Singh/Diviora-releases/releases/latest**. Open it and tap or click the
+Everything is on one page: **https://github.com/MS2022Singh/Diviora/releases/latest**. Open it and tap or click the
 file for your device (scroll down to **Assets** if the files are not visible). No GitHub account is needed.
 
 ## Android phone or tablet

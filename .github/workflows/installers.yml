@@ -20,6 +20,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Android SDK platform
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+      - name: Where installers are published (decides the update URL built into the apps)
+        id: pub
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          RELEASES_REPO: ${{ vars.DIVIORA_RELEASES_REPO }}
+        shell: bash
+        run: |
+          if [ -n "$RELEASES_TOKEN" ]; then repo="${RELEASES_REPO:-MS2022Singh/Diviora-releases}"; else repo="${{ github.repository }}"; fi
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "DIVIORA_UPDATE_URL=https://github.com/$repo/releases/latest/download/version.json" >> "$GITHUB_ENV"
+          echo "Update URL: https://github.com/$repo/releases/latest/download/version.json"
       - name: Build APK
         env:
           DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
@@ -47,6 +58,17 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
       - uses: gradle/actions/setup-gradle@v4
+      - name: Where installers are published (decides the update URL built into the apps)
+        id: pub
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          RELEASES_REPO: ${{ vars.DIVIORA_RELEASES_REPO }}
+        shell: bash
+        run: |
+          if [ -n "$RELEASES_TOKEN" ]; then repo="${RELEASES_REPO:-MS2022Singh/Diviora-releases}"; else repo="${{ github.repository }}"; fi
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "DIVIORA_UPDATE_URL=https://github.com/$repo/releases/latest/download/version.json" >> "$GITHUB_ENV"
+          echo "Update URL: https://github.com/$repo/releases/latest/download/version.json"
       - name: Unit tests and installer
         shell: bash
         env:
@@ -127,6 +149,6 @@ jobs:
           REPO: ${{ steps.target.outputs.repo }}
         run: |
           sha=$(gh api "repos/$REPO/contents/README.md" --jq .sha 2>/dev/null || true)
-          content=$(base64 -w0 docs/INSTALL.md)
+          content=$(sed "s#github.com/${{ github.repository }}/releases#github.com/$REPO/releases#g" docs/INSTALL.md | base64 -w0)
           if [ -n "$sha" ]; then gh api -X PUT "repos/$REPO/contents/README.md" -f message="Install guide" -f content="$content" -f sha="$sha" > /dev/null
           else gh api -X PUT "repos/$REPO/contents/README.md" -f message="Install guide" -f content="$content" > /dev/null; fi
