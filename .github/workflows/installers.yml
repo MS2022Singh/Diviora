@@ -34,9 +34,10 @@ jobs:
       - name: Build APK
         env:
           DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
-          DIVIORA_DEV_PASSPHRASE: ${{ secrets.DIVIORA_DEV_PASSPHRASE }}
+          # Secret preferred; a repository variable of the same name also works (but is visible to repo admins).
+          DIVIORA_DEV_PASSPHRASE: ${{ secrets.DIVIORA_DEV_PASSPHRASE || vars.DIVIORA_DEV_PASSPHRASE }}
         run: |
-          if [ -n "$DIVIORA_DEV_PASSPHRASE" ]; then echo "Developer unlock: enabled"; else echo "::warning::DIVIORA_DEV_PASSPHRASE secret is not set; developer options cannot be unlocked in this build"; fi
+          if [ -n "$DIVIORA_DEV_PASSPHRASE" ]; then echo "Developer unlock: enabled"; else echo "::warning::DIVIORA_DEV_PASSPHRASE is not set (Settings → Secrets and variables → Actions → Secrets tab → New repository secret, in MS2022Singh/Diviora); developer options cannot be unlocked in this build"; fi
           if [ -n "$DIVIORA_CATALOG_URL" ]; then echo "Catalog: $DIVIORA_CATALOG_URL"; else echo "Catalog: bundled demo (DIVIORA_CATALOG_URL not set)"; fi
           ./gradlew --no-daemon :app:assembleGithubRelease
           mkdir -p out && cp app/build/outputs/apk/github/release/app-github-release.apk out/DIVIORA-Music-Android.apk

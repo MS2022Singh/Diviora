@@ -2,6 +2,8 @@
 <!-- GitHub (sideloaded) distribution only: self-update. Not included in the Google Play build. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- One-tap "allow background" prompt for reliable routines (not used in the Play build: Play restricts it). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <application>
         <provider
             android:name="androidx.core.content.FileProvider"
