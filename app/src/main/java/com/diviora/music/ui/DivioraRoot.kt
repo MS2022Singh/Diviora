@@ -51,6 +51,15 @@ import com.diviora.music.ui.screens.VideoSurface
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
+/** Picture-in-picture state shared with screens. */
+object PipState {
+    /** An embedded YouTube/Spotify/SoundCloud player is on screen (PiP shows that player). */
+    val embedActive = kotlinx.coroutines.flow.MutableStateFlow(false)
+}
+
+/** True while the activity is in picture-in-picture mode. */
+val LocalInPip = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 /** App-wide one-shot messages shown as snackbars. */
 object UiEvents {
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
@@ -81,7 +90,10 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
     val context = LocalContext.current
     val c = context.container
     val player by c.player.state.collectAsStateWithLifecycle()
-    if (inPip) { VideoSurface(Modifier.fillMaxSize(), showControls = false); return }
+    val embedActive by PipState.embedActive.collectAsStateWithLifecycle()
+    // PiP for DIVIORA's own player shows just the video; for an embedded YouTube/Spotify player the embed screen
+    // stays in place (re-creating it would restart the video) and draws only its player.
+    if (inPip && !embedActive) { VideoSurface(Modifier.fillMaxSize(), showControls = false); return }
 
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
@@ -116,7 +128,7 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
 
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
-    val showChrome = route in tabs.map { it.route } || route?.startsWith("playlist") == true || route == "history"
+    val showChrome = !inPip && (route in tabs.map { it.route } || route?.startsWith("playlist") == true || route == "history")
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
@@ -134,7 +146,8 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
             }
         },
     ) { pad ->
-        NavHost(nav, startDestination = "home", modifier = Modifier.padding(pad)) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalInPip provides inPip) {
+        NavHost(nav, startDestination = "home", modifier = Modifier.padding(if (inPip) androidx.compose.foundation.layout.PaddingValues() else pad)) {
             composable("home") { HomeScreen(nav) }
             composable("library") { LibraryScreen(nav) }
             composable("routines") { RoutinesScreen(nav) }
@@ -157,6 +170,7 @@ fun DivioraRoot(inPip: Boolean, openRoute: String?, onRouteConsumed: () -> Unit)
             composable("playlist/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
                 PlaylistScreen(nav, it.arguments?.getLong("id") ?: 0L)
             }
+        }
         }
     }
 }

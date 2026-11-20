@@ -7,6 +7,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -86,9 +88,12 @@ fun SettingsScreen(nav: NavHostController) {
         Check("Exact alarms", "Routines start on the exact minute", exactOk, "Open") {
             if (Build.VERSION.SDK_INT >= 31) ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}")))
         }
-        Check("Battery optimisation off", "Stops some phones from killing scheduled playback", batteryOk, "Open") {
-            ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        }
+        Check("Battery optimisation off", "Stops some phones from killing scheduled playback", batteryOk, "Fix") { requestBatteryExemption(ctx) }
+        ListItem(
+            headlineContent = { Text("Phone battery manager (Vivo, Xiaomi, Oppo, Samsung…)") },
+            supportingContent = { Text("Opens DIVIORA's App info: tap Battery and choose Unrestricted / Allow background activity, and turn on Autostart if shown.") },
+            trailingContent = { TextButton(onClick = { openAppInfo(ctx) }) { Text("Open") } },
+        )
         Text("Note: if you force-stop the app, Android cancels all routines until you open DIVIORA again.",
             Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.padding(horizontal = 8.dp)) {
@@ -121,11 +126,31 @@ fun SettingsScreen(nav: NavHostController) {
             trailingContent = { TextButton(onClick = { RescanRequest.request() }) { Text("Scan") } })
 
         Section("Appearance")
+        val phoneDark = androidx.compose.foundation.isSystemInDarkTheme()
+        val effectiveDark = when (settings.theme) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> phoneDark }
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ThemeMode.entries.forEach { m -> FilterChip(settings.theme == m, { scope.launch { c.settings.setTheme(m) } }, label = { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }) }) }
         }
-        if (Build.VERSION.SDK_INT >= 31) ListItem(headlineContent = { Text("Wallpaper colours (Material You)") },
-            trailingContent = { Switch(settings.dynamicColor, { on -> scope.launch { c.settings.setDynamic(on) } }) })
+        Text(
+            when (settings.theme) {
+                ThemeMode.SYSTEM -> "System: follows your phone's dark mode (your phone is in ${if (phoneDark) "dark" else "light"} mode now, so DIVIORA is ${if (phoneDark) "dark" else "light"})."
+                ThemeMode.DARK -> "Dark: always dark, whatever the phone setting."
+                ThemeMode.LIGHT -> "Light: always light, whatever the phone setting."
+            },
+            Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val dynamicSupported = Build.VERSION.SDK_INT >= 31
+        ListItem(
+            headlineContent = { Text("Wallpaper colours (Material You)") },
+            supportingContent = {
+                Text(when {
+                    !dynamicSupported -> "Needs Android 12 or newer, so it isn't available on this phone."
+                    settings.dynamicColor -> "On: buttons and highlights use colours taken from your wallpaper (${if (effectiveDark) "dark" else "light"} version)."
+                    else -> "Off: DIVIORA's violet and pink colours."
+                })
+            },
+            trailingContent = { Switch(settings.dynamicColor && dynamicSupported, { on -> scope.launch { c.settings.setDynamic(on) } }, enabled = dynamicSupported) },
+        )
 
         Section("App updates")
         ListItem(headlineContent = { Text("Installed version ${BuildConfig.VERSION_NAME}") },
@@ -212,10 +237,20 @@ private fun DeveloperUnlockDialog(onDismiss: () -> Unit) {
         text = {
             Column {
                 Text("Enter the developer passphrase.")
+                var visible by remember { mutableStateOf(false) }
                 OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text("Passphrase") },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(autoCorrectEnabled = false,
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+                    visualTransformation = if (visible) androidx.compose.ui.text.input.VisualTransformation.None
+                        else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    trailingIcon = {
+                        androidx.compose.material3.IconButton(onClick = { visible = !visible }) {
+                            Icon(if (visible) androidx.compose.material.icons.Icons.Filled.VisibilityOff else androidx.compose.material.icons.Icons.Filled.Visibility,
+                                if (visible) "Hide passphrase" else "Show passphrase")
+                        }
+                    })
+                if (BuildConfig.DEV_UNLOCK_HASH.isEmpty()) Text("This build has no developer passphrase, so unlocking is not possible. See the developer guide §2a.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         },
         confirmButton = {
@@ -262,4 +297,18 @@ private fun DownloadControls() {
             }, label = { Text(label) })
         }
     }
+}
+
+/** Direct "allow background" prompt where permitted; otherwise the app's own settings page (the app is always listed there). */
+private fun requestBatteryExemption(ctx: android.content.Context) {
+    val pkg = Uri.parse("package:${ctx.packageName}")
+    val canAskDirectly = ctx.checkSelfPermission(android.Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) ==
+        android.content.pm.PackageManager.PERMISSION_GRANTED
+    if (canAskDirectly && runCatching { ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)) }.isSuccess) return
+    com.diviora.music.ui.UiEvents.message("Tap Battery → Unrestricted (or Don't optimise) for DIVIORA")
+    openAppInfo(ctx)
+}
+
+private fun openAppInfo(ctx: android.content.Context) {
+    runCatching { ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}"))) }
 }
