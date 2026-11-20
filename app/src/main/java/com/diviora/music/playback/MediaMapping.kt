@@ -31,16 +31,30 @@ fun MediaEntity.toMediaItem(): MediaItem {
         .setMediaMetadata(meta)
         .setRequestMetadata(MediaItem.RequestMetadata.Builder().setMediaUri(uri).setExtras(extras).build())
     // Help the extractor for adaptive streams that have no file extension.
-    if (kind == MediaKind.STREAM && offline == null) {
-        val u = this.uri.lowercase()
-        when {
-            ".m3u8" in u -> b.setMimeType(MimeTypes.APPLICATION_M3U8)
-            ".mpd" in u -> b.setMimeType(MimeTypes.APPLICATION_MPD)
-        }
-    }
+    // A MIME type helps the extractor for extension-less streams and is required by Cast receivers.
+    (mimeType ?: guessMime(this.uri, kind))?.let { b.setMimeType(it) }
     return b.build()
 }
 
 fun MediaItem.isVideo(): Boolean =
     mediaMetadata.extras?.getString(EXTRA_KIND) == MediaKind.VIDEO.name ||
         mediaMetadata.mediaType == MediaMetadata.MEDIA_TYPE_VIDEO
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal fun guessMime(uri: String, kind: MediaKind): String? {
+    val u = uri.lowercase().substringBefore('?')
+    return when {
+        ".m3u8" in u -> MimeTypes.APPLICATION_M3U8
+        ".mpd" in u -> MimeTypes.APPLICATION_MPD
+        u.endsWith(".mp3") -> MimeTypes.AUDIO_MPEG
+        u.endsWith(".m4a") || u.endsWith(".aac") -> MimeTypes.AUDIO_MP4
+        u.endsWith(".ogg") || u.endsWith(".opus") -> MimeTypes.AUDIO_OGG
+        u.endsWith(".flac") -> MimeTypes.AUDIO_FLAC
+        u.endsWith(".wav") -> MimeTypes.AUDIO_WAV
+        u.endsWith(".mp4") || u.endsWith(".m4v") -> MimeTypes.VIDEO_MP4
+        u.endsWith(".webm") -> MimeTypes.VIDEO_WEBM
+        u.endsWith(".mkv") -> MimeTypes.VIDEO_MATROSKA
+        kind == MediaKind.STREAM -> MimeTypes.AUDIO_MPEG
+        else -> null
+    }
+}

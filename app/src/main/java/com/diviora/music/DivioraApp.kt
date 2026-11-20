@@ -36,9 +36,17 @@ class DivioraApp : Application() {
     lateinit var container: AppContainer
         private set
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        // Chromecast / Cast devices (needs Google Play services; harmless without them). The Cast button opens the
+        // system output switcher where available, which also lists Bluetooth and wired outputs.
+        runCatching {
+            androidx.media3.cast.Cast.getSingletonInstance(this).initialize(
+                androidx.media3.cast.CastParams.Builder().setShowSystemOutputSwitcherOnCastButtonClick(true).build(),
+            )
+        }.onFailure { android.util.Log.w("DivioraApp", "Cast unavailable", it) }
         // Keep the main thread free at startup: the playback service and first frame share it.
         container.appScope.launch {
             RoutineNotifications.ensureChannel(this@DivioraApp)

@@ -3,6 +3,20 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-20
+### Added
+- Cast to Chromecast / Cast devices (Media3 CastPlayer) and a "Play on" button for Bluetooth, wired and speaker output.
+- Now Playing uses the whole screen: artwork fills the free space, side-by-side layout in landscape and on tablets,
+  fullscreen video (landscape, bars hidden), Up next / More to watch under videos.
+- Picture-in-picture for YouTube/Spotify/SoundCloud players. PiP explains and opens the setting when the phone has PiP
+  switched off for the app.
+- Battery: direct "allow background" prompt (GitHub build), plus a shortcut to App info for phone-brand battery managers.
+- Show/hide (👁) for the developer passphrase, with a notice when the build has no passphrase.
+- Appearance options explain what each does and which theme is active now.
+### Fixed
+- Player retries once after a timeout error instead of stopping.
+- Build accepts DIVIORA_DEV_PASSPHRASE as a secret or a variable, with a clearer warning when it is missing.
+
 ## [0.7.0] - 2026-11-19
 ### Added
 - Picture-in-picture for videos (Android): PiP button, automatic PiP when leaving the app (Android 12+), ⏮ ⏯ ⏭ in the PiP

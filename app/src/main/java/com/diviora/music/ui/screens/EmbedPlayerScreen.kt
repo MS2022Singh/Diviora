@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,15 +56,25 @@ fun EmbedPlayerScreen(nav: NavHostController, mediaId: Long) {
     val media by remember(mediaId) { c.db.media().observe(mediaId) }.collectAsStateWithLifecycle(null)
     val m = media ?: return
     val embed = remember(m.uri) { PlatformLinks.embedFor(m.uri) }
+    val inPip = com.diviora.music.ui.LocalInPip.current
+    val activity = androidx.activity.compose.LocalActivity.current as? com.diviora.music.MainActivity
     androidx.compose.runtime.LaunchedEffect(m.id) { c.library.refreshEmbedTitle(m) }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    androidx.compose.runtime.DisposableEffect(embed?.isVideo) {
+        com.diviora.music.ui.PipState.embedActive.value = embed?.isVideo == true
+        onDispose { com.diviora.music.ui.PipState.embedActive.value = false }
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = if (inPip) 0.dp else 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (!inPip) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
             Text(embed?.platform ?: "Player", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            if (embed?.isVideo == true) IconButton(onClick = { if (activity?.enterPip() != true) activity?.explainPipUnavailable() }) {
+                Icon(Icons.Filled.PictureInPictureAlt, "Picture-in-picture")
+            }
             IconButton(onClick = { openInPlatformApp(ctx, m.uri) }) { Icon(Icons.Filled.OpenInNew, "Open in app") }
         }
         if (embed == null) { Text("This link can't be embedded."); return@Column }
         if (embed.platform == "YouTube") YouTubeEmbed(embed.id) else WebEmbed(embed.embedUrl, tall = embed.kind != "track")
+        if (inPip) return@Column
         Text(m.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center)
         m.artist?.takeIf { it != embed.platform }?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         Text(

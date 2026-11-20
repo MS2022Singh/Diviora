@@ -38,10 +38,14 @@ import kotlinx.coroutines.withContext
  * Media3 session service. It handles background playback, the media notification, lock-screen, headset and Bluetooth
  * controls, and runs AutoPlay Routines when an alarm fires.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var session: MediaSession? = null
-    lateinit var player: ExoPlayer
+    /** Local ExoPlayer (audio attributes, wake mode). */
+    private lateinit var exo: ExoPlayer
+    /** The session's player: plays locally, or on a Cast device while one is connected. */
+    lateinit var player: Player
         private set
     private var stopJob: Job? = null
     private var fadeJob: Job? = null
@@ -49,11 +53,13 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        player = ExoPlayer.Builder(this)
+        exo = ExoPlayer.Builder(this)
             .setAudioAttributes(attributesFor(AudioStream.MEDIA), true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        player = runCatching { androidx.media3.cast.CastPlayer.Builder(this).setLocalPlayer(exo).build() as Player }
+            .getOrElse { Log.w(TAG, "Cast player unavailable, local only", it); exo }
         player.addListener(historyListener)
         player.addListener(errorSkipper)
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java)
@@ -107,7 +113,7 @@ class PlaybackService : MediaSessionService() {
         volumePercent: Int?, fadeInSeconds: Int, stopAfterMinutes: Int?,
     ) {
         stopJob?.cancel(); fadeJob?.cancel()
-        player.setAudioAttributes(attributesFor(stream), true)
+        exo.setAudioAttributes(attributesFor(stream), true)
         volumePercent?.let { setStreamVolume(stream, it) }
         if (append && player.mediaItemCount > 0) {
             player.addMediaItems(items)
@@ -159,6 +165,10 @@ class PlaybackService : MediaSessionService() {
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             Log.w(TAG, "playback error on ${player.currentMediaItem?.mediaId}: ${error.errorCodeName}")
             consecutiveErrors++
+            // A timeout means the device was briefly too busy: retry the same item once before skipping it.
+            if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_TIMEOUT && consecutiveErrors == 1) {
+                player.prepare(); player.play(); return
+            }
             if (consecutiveErrors < player.mediaItemCount && player.hasNextMediaItem()) {
                 player.seekToNextMediaItem(); player.prepare(); player.play()
             }
@@ -201,7 +211,7 @@ class PlaybackService : MediaSessionService() {
             startIndex: Int, startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             stopJob?.cancel(); fadeJob?.cancel(); player.volume = 1f
-            player.setAudioAttributes(attributesFor(AudioStream.MEDIA), true)
+            exo.setAudioAttributes(attributesFor(AudioStream.MEDIA), true)
             return super.onSetMediaItems(mediaSession, controller, mediaItems, startIndex, startPositionMs)
         }
     }
@@ -213,7 +223,7 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         instance = null
         scope.cancel()
-        session?.run { player.release(); release() }
+        session?.run { player.release(); if (player !== exo) exo.release(); release() }
         session = null
         super.onDestroy()
     }

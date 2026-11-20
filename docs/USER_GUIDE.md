@@ -28,7 +28,15 @@ Tap any item to play it. The **mini player** at the bottom has play/pause, next 
 seek bar, previous/next, shuffle, repeat, **⟲10 / 10⟳**, ♥ favourite, add to playlist, ⏰ schedule, speed, 🌙 sleep timer,
 ⏹ stop, and ☰ queue (tap to jump, ✕ to remove). Videos play at the top.
 
-**Picture-in-picture (video):** tap the **PiP** button at the top of Now playing, or press Home or switch apps while a video
+**Bluetooth, speaker, TV (Cast):** in Now playing, tap 🔊 **Play on** to choose Bluetooth headphones/speakers, wired
+headphones or the phone speaker. Tap the **Cast** icon (shown on phones with Google Play services) to play on a
+Chromecast or Cast-enabled TV/speaker on the same Wi-Fi. Online items cast. Files stored only on your phone play on
+the phone, because the TV cannot reach them.
+
+**Full screen (video):** tap ⛶ on the video. It turns landscape and hides the bars. Press Back or ⤡ to return. When
+nothing else is queued, **More to watch** under the video lists your other videos.
+
+**Picture-in-picture (video, including YouTube links):** tap the **PiP** button at the top of Now playing, or press Home or switch apps while a video
 plays. The video keeps playing in a small window you can drag anywhere, with ⏮ ⏯ ⏭ buttons. Tap it to make it bigger,
 or tap ⤢ to return to DIVIORA. On a computer, click **Picture-in-picture** under the video (or in the player bar) for a small
 always-on-top window. Close it to bring the video back.
@@ -47,11 +55,16 @@ always-on-top window. Close it to bring the video back.
 
 YouTube/Spotify items in a routine can only play on screen, so at the routine's time you get a **"tap to play"** notification.
 
+If PiP does nothing, your phone has it switched off for DIVIORA (common on Vivo, Xiaomi and Oppo). DIVIORA opens the
+setting for you, or go to **Settings → Apps → DIVIORA Music → Picture-in-picture → Allow**.
+
 ### Routines did not play?
 Open **Settings → Routine reliability check** and make every line green:
 - **Exact alarms → Open → Allow** (Android 12+).
 - **Notifications → Allow**.
-- **Battery optimisation off → Open → All apps → DIVIORA Music → Don't optimise**.
+- **Battery optimisation off → Fix** → Android asks *"Let app always run in background?"* → **Allow**. (Play Store version:
+  the App info page opens; tap **Battery → Unrestricted**.) **Phone battery manager → Open** goes to DIVIORA's App info for
+  brand-specific switches (Autostart, background activity).
 - Phone-brand battery savers (they stop apps from waking up):
   - **Vivo / iQOO:** Settings → Battery → Background power consumption management → DIVIORA → **Allow**. Also i Manager → App manager → Autostart → DIVIORA **on**.
   - **Xiaomi / Redmi / POCO:** Settings → Apps → DIVIORA → **Autostart on**, then Battery saver → **No restrictions**.
@@ -63,7 +76,13 @@ Open **Settings → Routine reliability check** and make every line green:
 
 On a computer, DIVIORA must be running (it stays in the tray when the window is closed) and the computer awake.
 
-## 5. Online content and updates
+## 5. Appearance
+**Settings → Appearance:** **Dark** is always dark, **Light** is always light, and **System** follows your phone's dark-mode
+setting (if your phone is in dark mode, System looks the same as Dark). The line under the buttons tells you what is
+active right now. **Wallpaper colours** (Android 12+) takes the accent colours from your wallpaper. Turn it off for
+DIVIORA's own violet and pink.
+
+## 6. Online content and updates
 - **Library → Online** and the Home screen show audio and video published by the DIVIORA developer. New content appears
   by itself (when the app starts and every hour while online). Tap **⟳ Refresh online content** to check now.
 - **Offline downloads:** if the developer allows it, an online item's **⋮** menu has **Download for offline**. Saved
@@ -72,7 +91,7 @@ On a computer, DIVIORA must be running (it stays in the tray when the window is 
 - **App updates:** DIVIORA checks for a new version every day. On Android tap the **Update available** banner →
   **Download** → **Install**. On a computer click **Download update** and run the installer. Settings → **App updates** → **Check now**.
 
-## 6. Playback errors
+## 7. Playback errors
 | Message | Meaning / fix |
 |---|---|
 | `ERROR_CODE_IO_BAD_HTTP_STATUS` | The server refused the link (deleted, private or blocked). DIVIORA skips to the next item. Remove or replace the link. |

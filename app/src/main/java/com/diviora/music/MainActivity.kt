@@ -53,16 +53,20 @@ class MainActivity : ComponentActivity() {
         }
         if (savedInstanceState == null) handleIntent(intent)
         // Keep picture-in-picture settings in sync with what is playing (auto-enter on Android 12+).
-        lifecycleScope.launch { container.player.state.collect { updatePipParams(it) } }
+        lifecycleScope.launch {
+            kotlinx.coroutines.flow.combine(container.player.state, com.diviora.music.ui.PipState.embedActive) { s, e -> s to e }
+                .collect { (s, e) -> updatePipParams(s, e) }
+        }
     }
 
-    private fun pipParams(s: com.diviora.music.playback.PlayerUiState): PictureInPictureParams {
+    private fun pipParams(s: com.diviora.music.playback.PlayerUiState, embed: Boolean = com.diviora.music.ui.PipState.embedActive.value): PictureInPictureParams {
         val ratio = if (s.videoWidth > 0 && s.videoHeight > 0) {
             val r = s.videoWidth.toFloat() / s.videoHeight
             when { r > 2.39f -> Rational(239, 100); r < 1 / 2.39f -> Rational(100, 239); else -> Rational(s.videoWidth, s.videoHeight) }
         } else Rational(16, 9)
-        val b = PictureInPictureParams.Builder().setAspectRatio(ratio).setActions(pipActions(s.isPlaying))
-        if (Build.VERSION.SDK_INT >= 31) b.setAutoEnterEnabled(s.isVideo && s.isPlaying).setSeamlessResizeEnabled(true)
+        val b = PictureInPictureParams.Builder().setAspectRatio(if (embed) Rational(16, 9) else ratio)
+            .setActions(if (embed) emptyList() else pipActions(s.isPlaying))
+        if (Build.VERSION.SDK_INT >= 31) b.setAutoEnterEnabled(embed || (s.isVideo && s.isPlaying)).setSeamlessResizeEnabled(true)
         return b.build()
     }
 
@@ -80,14 +84,34 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun updatePipParams(s: com.diviora.music.playback.PlayerUiState) {
+    private fun updatePipParams(s: com.diviora.music.playback.PlayerUiState, embed: Boolean) {
         if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-        runCatching { setPictureInPictureParams(pipParams(s)) }
+        runCatching { setPictureInPictureParams(pipParams(s, embed)) }
+    }
+
+    /** False if the user (or the phone maker's default, e.g. on Vivo) switched picture-in-picture off for DIVIORA. */
+    private fun pipAllowed(): Boolean = runCatching {
+        val ops = getSystemService(android.app.AppOpsManager::class.java)
+        val mode = if (Build.VERSION.SDK_INT >= 29) ops.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_PICTURE_IN_PICTURE, applicationInfo.uid, packageName)
+        else @Suppress("DEPRECATION") ops.checkOpNoThrow(android.app.AppOpsManager.OPSTR_PICTURE_IN_PICTURE, applicationInfo.uid, packageName)
+        mode == android.app.AppOpsManager.MODE_ALLOWED
+    }.getOrDefault(true)
+
+    /** Explains why PiP did not start and opens the right settings page. */
+    fun explainPipUnavailable() {
+        if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+            UiEvents.message("This device does not support picture-in-picture"); return
+        }
+        UiEvents.message("Picture-in-picture is turned off for DIVIORA. Switch it on: Settings → Apps → DIVIORA Music → Picture-in-picture.")
+        val pkg = Uri.parse("package:$packageName")
+        runCatching { startActivity(Intent("android.settings.PICTURE_IN_PICTURE_SETTINGS", pkg)) }
+            .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkg)) }
     }
 
     /** Enter picture-in-picture now (the PiP button in Now Playing). */
     fun enterPip(): Boolean {
         if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) return false
+        if (!pipAllowed()) return false
         return runCatching { enterPictureInPictureMode(pipParams(container.player.state.value)) }.getOrDefault(false)
     }
 
@@ -153,7 +177,7 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         val s = container.player.state.value
         // Android 8–11: enter PiP when leaving the app during video (12+ uses auto-enter).
-        if (s.isVideo && s.isPlaying && Build.VERSION.SDK_INT < 31) enterPip()
+        if (((s.isVideo && s.isPlaying) || com.diviora.music.ui.PipState.embedActive.value) && Build.VERSION.SDK_INT < 31) enterPip()
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
