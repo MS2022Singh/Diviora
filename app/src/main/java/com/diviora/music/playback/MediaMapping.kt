@@ -33,6 +33,18 @@ fun MediaEntity.toMediaItem(): MediaItem {
     // Help the extractor for adaptive streams that have no file extension.
     // A MIME type helps the extractor for extension-less streams and is required by Cast receivers.
     (mimeType ?: guessMime(this.uri, kind))?.let { b.setMimeType(it) }
+    // Widevine DRM for protected online items (offline copies are AES-encrypted on the device instead).
+    if (offline == null) drmJson?.let { json ->
+        runCatching { com.diviora.music.data.repo.DivioraJson.decodeFromString(com.diviora.music.core.catalog.CatalogDrm.serializer(), json) }
+            .getOrNull()?.let { d ->
+                b.setDrmConfiguration(
+                    MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
+                        .setLicenseUri(d.licenseUrl)
+                        .setLicenseRequestHeaders(d.headers + com.diviora.music.security.ProtectedDataSourceFactory.contentHeaders())
+                        .build(),
+                )
+            }
+    }
     return b.build()
 }
 

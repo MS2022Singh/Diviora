@@ -73,8 +73,17 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
         if (c != null) block(c) else { pending += block; connect() }
     }
 
+    /** Hook to refresh expiring signed URLs before playback (set by the app container). */
+    var beforePlay: (suspend (List<MediaEntity>) -> List<MediaEntity>)? = null
+
     fun playItems(items: List<MediaEntity>, startIndex: Int = 0) {
         if (items.isEmpty()) return
+        val hook = beforePlay
+        if (hook != null) { scope.launch(Dispatchers.Main) { playNow(runCatching { hook(items) }.getOrDefault(items), startIndex) }; return }
+        playNow(items, startIndex)
+    }
+
+    private fun playNow(items: List<MediaEntity>, startIndex: Int) {
         val target = items[startIndex.coerceIn(0, items.lastIndex)]
         if (target.source == MediaSource.EMBED) {
             // YouTube/Spotify/SoundCloud play in their official on-screen player, not in ExoPlayer.

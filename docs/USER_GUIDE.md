@@ -86,12 +86,16 @@ DIVIORA's own violet and pink.
 - **Library → Online** and the Home screen show audio and video published by the DIVIORA developer. New content appears
   by itself (when the app starts and every hour while online). Tap **⟳ Refresh online content** to check now.
 - **Offline downloads:** if the developer allows it, an online item's **⋮** menu has **Download for offline**. Saved
-  items show "⬇ Offline", play without internet and can be removed with **⋮ → Remove download**. If the developer turns
+  items are stored **encrypted** and play only inside DIVIORA on this phone. They show "🔒 Offline", play without internet and can be removed with **⋮ → Remove download**. If the developer turns
   downloads off, saved copies are removed automatically.
 - **App updates:** DIVIORA checks for a new version every day. On Android tap the **Update available** banner →
   **Download** → **Install**. On a computer click **Download update** and run the installer. Settings → **App updates** → **Check now**.
 
-## 7. Playback errors
+## 7. Privacy and protection
+To protect artists' content, screenshots and screen recordings of DIVIORA appear black, and other apps can't record
+DIVIORA's sound. Some online items are marked "🔒 Protected" and only stream; they can't be saved.
+
+## 8. Playback errors
 | Message | Meaning / fix |
 |---|---|
 | `ERROR_CODE_IO_BAD_HTTP_STATUS` | The server refused the link (deleted, private or blocked). DIVIORA skips to the next item. Remove or replace the link. |

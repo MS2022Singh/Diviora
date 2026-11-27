@@ -53,7 +53,11 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        val vault = com.diviora.music.security.KeyVault(this)
         exo = ExoPlayer.Builder(this)
+            // Encrypted offline copies are decrypted while streaming; network requests carry the app's content key.
+            .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(
+                com.diviora.music.security.ProtectedDataSourceFactory(this, vault)))
             .setAudioAttributes(attributesFor(AudioStream.MEDIA), true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
@@ -154,9 +158,11 @@ class PlaybackService : MediaSessionService() {
         }.onFailure { Log.w(TAG, "volume change refused (Do Not Disturb?)", it) }
     }
 
+    /** Audio is never capturable by other apps (screen recorders, audio-capture apps) on Android 10+. */
     private fun attributesFor(stream: AudioStream): AudioAttributes = AudioAttributes.Builder()
         .setUsage(if (stream == AudioStream.ALARM) C.USAGE_ALARM else C.USAGE_MEDIA)
         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+        .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_NONE)
         .build()
 
     /** Media3 stops on an error. Skip a broken item (dead link, unsupported file) and keep the queue going. */
@@ -197,14 +203,26 @@ class PlaybackService : MediaSessionService() {
     /** Session callback: rebuild URIs that controllers stripped, and reset to the media stream for manual playback. */
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private inner class SessionCallback : MediaSession.Callback {
+        /**
+         * Controllers (the app UI, Bluetooth, Android Auto) only send item ids: rebuild each item from the library so its
+         * current URL, DRM settings and encrypted offline copy are used. Nothing sensitive crosses process boundaries.
+         */
         override fun onAddMediaItems(
             mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> = Futures.immediateFuture(
-            mediaItems.map { item ->
-                val uri = item.requestMetadata.mediaUri ?: item.localConfiguration?.uri
-                if (uri == null) item else item.buildUpon().setUri(uri).build()
-            }.toMutableList(),
-        )
+        ): ListenableFuture<MutableList<MediaItem>> {
+            val future = com.google.common.util.concurrent.SettableFuture.create<MutableList<MediaItem>>()
+            scope.launch(Dispatchers.IO) {
+                val rebuilt = mediaItems.map { item ->
+                    val fromDb = item.mediaId.toLongOrNull()?.let { container.db.media().get(it) }?.toMediaItem()
+                    fromDb ?: run {
+                        val uri = item.requestMetadata.mediaUri ?: item.localConfiguration?.uri
+                        if (uri == null) item else item.buildUpon().setUri(uri).build()
+                    }
+                }
+                future.set(rebuilt.toMutableList())
+            }
+            return future
+        }
 
         override fun onSetMediaItems(
             mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>,

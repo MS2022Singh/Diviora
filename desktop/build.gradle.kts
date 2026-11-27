@@ -43,8 +43,10 @@ compose.desktop {
             ?: providers.environmentVariable("DIVIORA_CATALOG_URL").orNull).orEmpty().trim()
         val updateUrl = (providers.gradleProperty("diviora.updateUrl").orNull?.takeIf { it.isNotBlank() }
             ?: providers.environmentVariable("DIVIORA_UPDATE_URL").orNull).orEmpty().trim()
+        val contentKey = (providers.gradleProperty("diviora.contentKey").orNull?.takeIf { it.isNotBlank() }
+            ?: providers.environmentVariable("DIVIORA_CONTENT_KEY").orNull).orEmpty().trim()
         jvmArgs += listOf("-Ddiviora.version=$appVersion", "-Ddiviora.versionCode=$versionCode", "-Ddiviora.catalogUrl=$catalogUrl",
-            "-Ddiviora.updateUrl=$updateUrl")
+            "-Ddiviora.updateUrl=$updateUrl", "-Ddiviora.contentKey=$contentKey")
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "DIVIORA Music"

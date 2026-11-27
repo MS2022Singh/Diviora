@@ -34,6 +34,7 @@ jobs:
       - name: Build APK
         env:
           DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
+          DIVIORA_CONTENT_KEY: ${{ secrets.DIVIORA_CONTENT_KEY }}
           # Secret preferred; a repository variable of the same name also works (but is visible to repo admins).
           DIVIORA_DEV_PASSPHRASE: ${{ secrets.DIVIORA_DEV_PASSPHRASE || vars.DIVIORA_DEV_PASSPHRASE }}
         run: |
@@ -74,6 +75,7 @@ jobs:
         shell: bash
         env:
           DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
+          DIVIORA_CONTENT_KEY: ${{ secrets.DIVIORA_CONTENT_KEY }}
         run: ./gradlew --no-daemon -Pdiviora.skipAndroid=true :desktop:test :desktop:${{ matrix.task }}
       - name: Collect
         shell: bash
