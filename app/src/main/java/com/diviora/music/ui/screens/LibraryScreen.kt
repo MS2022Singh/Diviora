@@ -168,7 +168,7 @@ fun MediaList(items: List<MediaEntity>, playingId: String?, header: Boolean = fa
             val m = items[i]
             MediaRow(
                 m.title, listOfNotNull(m.artist, formatDuration(m.durationMs).takeIf { m.durationMs > 0 },
-                    when { m.offlinePath != null -> "⬇ Offline"; m.downloadId != null -> "Downloading…"; else -> null }).joinToString(" · ").ifEmpty { m.album },
+                    when { m.offlinePath != null -> "🔒 Offline"; m.downloadId != null -> "Saving…"; m.drmJson != null -> "🔒 Protected"; else -> null }).joinToString(" · ").ifEmpty { m.album },
                 m.artworkUri, m.kind, playing = playingId == m.id.toString(),
                 onClick = { c.player.playItems(items, i) },
                 trailing = { MediaItemMenu(m, playlistId) },

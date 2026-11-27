@@ -29,7 +29,11 @@ class AppContainer(context: Context) {
     val catalogs = CatalogRepository(context, db, settings)
     val updater = com.diviora.music.update.AppUpdater(context)
     val offline = com.diviora.music.data.repo.OfflineRepository(context, db, settings)
-    val player = PlayerConnection(context, appScope)
+    val vault = com.diviora.music.security.KeyVault(context)
+    val player = PlayerConnection(context, appScope).also { p ->
+        // Signed (expiring) URLs are refreshed from the server just before playback.
+        p.beforePlay = { items -> if (catalogs.needsRefresh(items)) { catalogs.syncAll(); db.media().getAll(items.map { it.id }).let { fresh -> items.map { i -> fresh.firstOrNull { it.id == i.id } ?: i } } } else items }
+    }
 }
 
 class DivioraApp : Application() {

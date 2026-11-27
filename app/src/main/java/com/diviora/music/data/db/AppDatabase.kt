@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RoutineEntity::class, RoutineItemEntity::class, TimeSlotEntity::class,
         ScheduledAlarmEntity::class, RoutineExecutionEntity::class, CatalogSourceEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         fun build(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "diviora.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            Room.databaseBuilder(context, AppDatabase::class.java, "diviora.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 }
 
@@ -47,5 +47,13 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("ALTER TABLE media ADD COLUMN downloadId INTEGER")
         db.execSQL("ALTER TABLE media ADD COLUMN offlinePath TEXT")
         db.execSQL("ALTER TABLE catalog_source ADD COLUMN allowDownload INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/** v4: DRM settings and signed-URL expiry for protected content. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE media ADD COLUMN drmJson TEXT")
+        db.execSQL("ALTER TABLE media ADD COLUMN urlExpiresAt INTEGER")
     }
 }

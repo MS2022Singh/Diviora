@@ -35,6 +35,12 @@ android {
             ?: providers.environmentVariable("DIVIORA_UPDATE_URL").orNull?.takeIf { it.isNotBlank() }
             ?: "https://github.com/MS2022Singh/Diviora/releases/latest/download/version.json").trim()
         buildConfigField("String", "UPDATE_URL", "\"$updateUrl\"")
+        // Protected content server: key the app sends as X-Diviora-Key (env DIVIORA_CONTENT_KEY / CI secret). Empty = none.
+        val contentKey = (providers.gradleProperty("diviora.contentKey").orNull?.takeIf { it.isNotBlank() }
+            ?: providers.environmentVariable("DIVIORA_CONTENT_KEY").orNull).orEmpty().trim()
+        buildConfigField("String", "CONTENT_KEY", "\"$contentKey\"")
+        // Block screenshots/screen recording of the app (FLAG_SECURE). Default on.
+        buildConfigField("boolean", "SECURE_MODE", providers.gradleProperty("diviora.secureMode").getOrElse("true"))
         buildConfigField("String", "CATALOG_URL", "\"$catalogUrl\"")
     }
     signingConfigs {
@@ -93,7 +99,7 @@ android {
         checkReleaseBuilds = false
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "ObsoleteSdkInt")
     }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions { unitTests.isReturnDefaultValues = true; unitTests.isIncludeAndroidResources = true }
 }
 
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
@@ -140,5 +146,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
 

@@ -34,6 +34,17 @@ data class CatalogItem(
     val license: String? = null,
     /** Per-item override of [Catalog.allowDownload]. */
     val download: Boolean? = null,
+    /** Widevine DRM (encrypted DASH/HLS + licence server). DRM items are stream-only and Android-only. */
+    val drm: CatalogDrm? = null,
+    /** When a signed URL stops working (epoch ms). The app refreshes the catalog before playing an expired item. */
+    val expiresAt: Long? = null,
+)
+
+@Serializable
+data class CatalogDrm(
+    val scheme: String = "widevine",
+    val licenseUrl: String,
+    val headers: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -58,6 +69,11 @@ object CatalogParser {
             if (!ok) warnings += "Skipped item '${i.id}': needs unique id, title, http(s) url and type audio|video|stream"
             ok
         }.map { if (it.artwork != null && !isHttp(it.artwork)) it.copy(artwork = null) else it }
+            .map { i ->
+                if (i.drm != null && (i.drm.scheme.lowercase() != "widevine" || !i.drm.licenseUrl.startsWith("https://", true))) {
+                    warnings += "Item '${i.id}': drm needs scheme \"widevine\" and an https licenseUrl; DRM ignored"; i.copy(drm = null)
+                } else i
+            }
         return raw.copy(name = raw.name.trim().take(80), items = items) to warnings
     }
 

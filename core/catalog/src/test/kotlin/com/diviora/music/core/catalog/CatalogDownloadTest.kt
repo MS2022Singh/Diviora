@@ -25,3 +25,16 @@ class CatalogDownloadTest {
         assertEquals(20_000, c.items.size); assertTrue(w.isEmpty())
     }
 }
+
+class CatalogSecurityTest {
+    @Test fun drmAndExpiryParsed() {
+        val (c, w) = CatalogParser.parse("""{"version":1,"name":"X","items":[
+            {"id":"a","title":"A","url":"https://cdn/a.mpd","type":"video","expiresAt":1900000000000,
+             "drm":{"scheme":"widevine","licenseUrl":"https://lic/wv","headers":{"Authorization":"t"}}},
+            {"id":"b","title":"B","url":"https://cdn/b.mpd","drm":{"scheme":"playready","licenseUrl":"https://lic"}}]}""")
+        org.junit.Assert.assertEquals("https://lic/wv", c.items[0].drm?.licenseUrl)
+        org.junit.Assert.assertEquals(1900000000000L, c.items[0].expiresAt)
+        org.junit.Assert.assertNull("unsupported DRM scheme dropped", c.items[1].drm)
+        org.junit.Assert.assertEquals(1, w.size)
+    }
+}

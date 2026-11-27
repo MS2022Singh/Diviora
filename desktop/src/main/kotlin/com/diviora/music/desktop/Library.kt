@@ -94,7 +94,8 @@ class Library(private val store: Store) {
         store.update { d ->
             val existing = d.media.filter { it.catalogUrl == url }.associateBy { it.uri }
             var next = d.nextId
-            val fresh = c.items.map { i ->
+            // Widevine DRM items need Android's secure media path; the desktop player cannot play them.
+            val fresh = c.items.filter { it.drm == null }.map { i ->
                 val kind = when (i.type) { "video" -> MediaKind.VIDEO; "stream" -> MediaKind.STREAM; else -> MediaKind.AUDIO }
                 val old = existing[i.url]
                 DMedia(old?.id ?: next++, i.url, kind, MediaSource.CATALOG, i.title, i.artist, i.album ?: c.name, i.durationMs,
@@ -116,6 +117,7 @@ class Library(private val store: Store) {
         if (url == DEMO_URL) return@withContext Library::class.java.getResource("/demo-catalog.json")!!.readText()
         val res = http.send(
             HttpRequest.newBuilder(URI(url)).timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
+                .apply { System.getProperty("diviora.contentKey")?.takeIf { it.isNotBlank() }?.let { header("X-Diviora-Key", it) } }
                 .header("User-Agent", "DIVIORA-Music-Desktop/${System.getProperty("diviora.version") ?: "dev"}").build(),
             HttpResponse.BodyHandlers.ofByteArray(),
         )

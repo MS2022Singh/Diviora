@@ -32,6 +32,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Content protection: screenshots and screen recordings of DIVIORA show a black screen.
+        if (BuildConfig.SECURE_MODE) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         container.player.connect()
         setContent {
             val settings by container.settings.settings.collectAsStateWithLifecycle(AppSettings())
