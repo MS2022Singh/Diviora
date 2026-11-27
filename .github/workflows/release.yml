@@ -32,6 +32,7 @@ jobs:
           DIVIORA_KEY_PASSWORD: ${{ secrets.DIVIORA_KEY_PASSWORD }}
           DIVIORA_CATALOG_URL: ${{ vars.DIVIORA_CATALOG_URL }}
           DIVIORA_DEV_PASSPHRASE: ${{ secrets.DIVIORA_DEV_PASSPHRASE }}
+          DIVIORA_CONTENT_KEY: ${{ secrets.DIVIORA_CONTENT_KEY }}
         run: |
           ./gradlew --no-daemon :app:bundlePlayRelease
           mkdir -p out && cp app/build/outputs/bundle/playRelease/app-play-release.aab out/DIVIORA-Music-Play.aab

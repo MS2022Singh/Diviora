@@ -53,7 +53,11 @@ class RoutineRunner(private val service: PlaybackService, private val c: AppCont
 
         val withEmbeds = withContext(Dispatchers.IO) { dao.items(routine.id) }
         val embeds = withEmbeds.filter { it.source == com.diviora.music.core.model.MediaSource.EMBED }
-        val all = withEmbeds - embeds.toSet()
+        val allRaw = withEmbeds - embeds.toSet()
+        // Signed (expiring) URLs: refresh from the server before the routine plays.
+        val all = withContext(Dispatchers.IO) {
+            if (c.catalogs.needsRefresh(allRaw)) { c.catalogs.syncAll(); dao.items(routine.id).filter { it.source != com.diviora.music.core.model.MediaSource.EMBED } } else allRaw
+        }
         if (all.isEmpty() && embeds.isNotEmpty()) {
             // YouTube/Spotify/SoundCloud may only play on screen: ask the user to tap.
             RoutineNotifications.showOpenRoute(service, "${routine.name}: tap to play", embeds.first().title, "embed/${embeds.first().id}")

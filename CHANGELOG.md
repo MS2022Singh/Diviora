@@ -3,6 +3,20 @@ All notable changes to this project are documented here (Keep a Changelog, SemVe
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-27
+### Added
+- Content protection: offline copies are AES-encrypted while downloading (key wrapped by the Android Keystore,
+  app-private storage, no plaintext on disk) and decrypted only during playback. Older unencrypted downloads are removed.
+- Other apps can no longer capture DIVIORA's audio (Android 10+). Screenshots and screen recordings are blocked
+  (FLAG_SECURE, `diviora.secureMode`).
+- Secure content server support: the app sends a content key (`DIVIORA_CONTENT_KEY`), understands signed expiring links
+  (`expiresAt`) and refreshes them before playback, downloads and routines. Item identity survives link re-signing.
+- Widevine DRM items in catalogs (`drm` with licence URL/headers). Stream-only, Android-only.
+- Player items are rebuilt from the library inside the playback service, so DRM, keys and fresh links never depend on
+  what a controller sends.
+### Changed
+- Database v4 (migration from v3).
+
 ## [0.8.0] - 2026-11-20
 ### Added
 - Cast to Chromecast / Cast devices (Media3 CastPlayer) and a "Play on" button for Bluetooth, wired and speaker output.

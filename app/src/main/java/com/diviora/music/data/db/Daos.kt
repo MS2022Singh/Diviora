@@ -80,6 +80,12 @@ interface MediaDao {
     @Query("SELECT uri, id FROM media WHERE catalogUrl = :catalogUrl")
     suspend fun catalogUris(catalogUrl: String): List<UriId>
 
+    @Query("UPDATE media SET drmJson = :drmJson, urlExpiresAt = :expiresAt, uri = :uri WHERE id = :id")
+    suspend fun setProtection(id: Long, uri: String, drmJson: String?, expiresAt: Long?)
+
+    @Query("SELECT * FROM media WHERE catalogUrl = :catalogUrl AND kind = :kind AND title = :title LIMIT 1")
+    suspend fun findCatalogItem(catalogUrl: String, kind: com.diviora.music.core.model.MediaKind, title: String): MediaEntity?
+
     @Query("UPDATE media SET downloadAllowed = :allowed WHERE id = :id")
     suspend fun setDownloadAllowed(id: Long, allowed: Boolean)
 

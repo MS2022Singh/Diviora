@@ -32,6 +32,10 @@ data class MediaEntity(
     val downloadId: Long? = null,
     /** Absolute path of the offline copy, if downloaded. */
     val offlinePath: String? = null,
+    /** JSON of the item's DRM settings (Widevine), if protected. */
+    val drmJson: String? = null,
+    /** When this item's signed URL expires (epoch ms), if the server signs URLs. */
+    val urlExpiresAt: Long? = null,
 )
 
 @Entity(tableName = "playlist")

@@ -80,26 +80,29 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
     private suspend fun applyCatalog(url: String, catalog: Catalog, builtIn: Boolean): CatalogSourceEntity = lock.withLock {
         val dao = db.media()
         db.withTransaction {
-            val existing = dao.catalogUris(url).associate { it.uri to it.id }
+            // Identify items by their URL without the query string: signed URLs get a new signature on every sync.
+            val existing = dao.catalogUris(url).associate { stableKey(it.uri) to it.id }
             val idByItem = HashMap<String, Long>()
             for (item in catalog.items) {
-                val key = itemUri(url, item)
+                val key = stableKey(itemUri(url, item))
                 val kind = when (item.type) { "video" -> MediaKind.VIDEO; "stream" -> MediaKind.STREAM; else -> MediaKind.AUDIO }
                 val row = MediaEntity(
-                    uri = key, kind = kind, source = MediaSource.CATALOG, title = item.title.take(200),
+                    uri = item.url.trim(), kind = kind, source = MediaSource.CATALOG, title = item.title.take(200),
                     artist = item.artist?.take(120), album = item.album ?: catalog.name, durationMs = item.durationMs.coerceAtLeast(0),
                     artworkUri = item.artwork, catalogUrl = url, downloadAllowed = item.download ?: catalog.allowDownload,
                 )
                 val id = existing[key]
-                val mediaId = if (id == null) dao.insert(row).takeIf { it > 0 } ?: dao.idForUri(key) ?: continue
+                val mediaId = if (id == null) dao.insert(row).takeIf { it > 0 } ?: dao.idForUri(row.uri) ?: continue
                 else {
                     dao.refreshMetadata(id, row.title, row.artist, row.album, row.durationMs, row.artworkUri, null, null)
                     id
                 }
-                dao.setDownloadAllowed(mediaId, row.downloadAllowed)
+                // DRM items are stream-only (licences are not stored offline).
+                dao.setDownloadAllowed(mediaId, row.downloadAllowed && item.drm == null)
+                dao.setProtection(mediaId, row.uri, item.drm?.let { DivioraJson.encodeToString(CatalogDrm.serializer(), it) }, item.expiresAt)
                 idByItem[item.id] = mediaId
             }
-            val keep = catalog.items.mapTo(HashSet()) { itemUri(url, it) }
+            val keep = catalog.items.mapTo(HashSet()) { stableKey(itemUri(url, it)) }
             existing.filterKeys { it !in keep }.values.toList().takeIf { it.isNotEmpty() }?.let { dao.markUnavailable(it) }
             // Catalog playlists become library playlists named "<catalog> · <playlist>".
             val playlists = db.playlists()
@@ -125,6 +128,8 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
             connectTimeout = 15_000; readTimeout = 20_000; instanceFollowRedirects = true
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "DIVIORA-Music/${BuildConfig.VERSION_NAME}")
+            com.diviora.music.security.ProtectedDataSourceFactory.contentHeaders().forEach { (k, v) -> setRequestProperty(k, v) }
+            setRequestProperty("Cache-Control", "no-cache")
         }
         try {
             if (conn.responseCode !in 200..299) throw CatalogException("Server answered HTTP ${conn.responseCode}")
@@ -134,8 +139,15 @@ class CatalogRepository(private val context: Context, private val db: AppDatabas
         } finally { conn.disconnect() }
     }
 
+    /** True if any of these items has a signed URL that expires within 5 minutes (refresh the catalog first). */
+    fun needsRefresh(items: List<MediaEntity>): Boolean {
+        val soon = System.currentTimeMillis() + 5 * 60_000
+        return items.any { it.source == MediaSource.CATALOG && it.offlinePath == null && (it.urlExpiresAt ?: Long.MAX_VALUE) < soon }
+    }
+
     companion object {
         private const val TAG = "CatalogRepository"
+        internal fun stableKey(u: String) = u.trim().substringBefore('?').substringBefore('#')
         const val DEMO_URL = "asset://catalog/demo-catalog.json"
     }
 }
